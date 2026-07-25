@@ -1,0 +1,39 @@
+{
+  "executionId": "fa2n4o2xy9ksrx51abokt",
+  "status": "completed",
+  "type": "transfer",
+  "transactionHash": "0x720fe563e56dbdb664955529feb9fafc8d3b1e06ec09741dd11562fc26e404f3",
+  "transactionLink": "https://basescan.org/tx/0x720fe563e56dbdb664955529feb9fafc8d3b1e06ec09741dd11562fc26e404f3",
+  "result": {
+    "amount": "0.1",
+    "symbol": "USDC",
+    "gasUsed": "111550",
+    "success": true,
+    "recipient": "0x676596E33FA6FF7D9c539549e8Ee50406856b27f",
+    "sponsored": true,
+    "executedCall": {
+      "args": {
+        "to": "0x676596E33FA6FF7D9c539549e8Ee50406856b27f",
+        "value": "100000"
+      },
+      "reverted": false,
+      "sponsored": true,
+      "topLevelTo": "0x5af5194b4b0909eb978e3cf1e25333852277f07d",
+      "functionName": "transfer",
+      "contractAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "functionSignature": "transfer(address,uint256)"
+    },
+    "gasUsedUnits": "111550",
+    "transactionHash": "0x720fe563e56dbdb664955529feb9fafc8d3b1e06ec09741dd11562fc26e404f3",
+    "transactionLink": "https://basescan.org/tx/0x720fe563e56dbdb664955529feb9fafc8d3b1e06ec09741dd11562fc26e404f3",
+    "effectiveGasPrice": "6005849"
+  },
+  "error": null,
+  "gasUsedWei": "111550",
+  "gasPriceWei": "6005849",
+  "estimatedCostUsd": null,
+  "retryCount": 0,
+  "network": "8453",
+  "createdAt": "2026-07-25T20:09:05.553Z",
+  "completedAt": "2026-07-25T20:09:10.649Z"
+}
