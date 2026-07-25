@@ -1,0 +1,6 @@
+packages:
+  - "packages/*"
+  - "backend"
+  - "agents"
+  - "frontend"
+# contracts/ is a Foundry project, not a pnpm package — intentionally excluded.

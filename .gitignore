@@ -10,6 +10,15 @@ node_modules/
 dist/
 build/
 
+# Foundry (contracts/)
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/lib/
+
+# TS
+*.tsbuildinfo
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,0 +1,21 @@
+{
+  "name": "recourse",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Escrowed payment for agent-executed onchain work, verified by chain-state delta. KeeperHub Agents Onchain hackathon.",
+  "type": "module",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "backend": "pnpm --filter @recourse/backend dev",
+    "agent": "pnpm --filter @recourse/agents dev",
+    "frontend": "pnpm --filter @recourse/frontend dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
