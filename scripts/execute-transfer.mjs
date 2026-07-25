@@ -24,7 +24,9 @@ function arg(name, fallback) {
 }
 const to = arg("to");
 const amount = arg("amount", "0.5");
-const tokenAddress = arg("token-address", USDC_BASE);
+// --native sends ETH (no tokenAddress); otherwise defaults to Base USDC.
+const isNative = args.includes("--native");
+const tokenAddress = isNative ? undefined : arg("token-address", USDC_BASE);
 
 if (!apiKey) {
   console.error("Missing KH_API_KEY. Run with: node --env-file=.env scripts/execute-transfer.mjs ...");
@@ -47,7 +49,7 @@ async function submit() {
     chainId: CHAIN_ID,
     recipientAddress: to,
     amount,
-    tokenAddress,
+    ...(tokenAddress ? { tokenAddress } : {}), // omit for native ETH
   };
   console.log("Submitting transfer:");
   console.log(JSON.stringify(body, null, 2), "\n");
