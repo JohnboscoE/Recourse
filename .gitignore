@@ -14,7 +14,7 @@ build/
 contracts/out/
 contracts/cache/
 contracts/broadcast/
-contracts/lib/
+# contracts/lib/ is tracked via git submodules (see .gitmodules) for reproducible deps.
 
 # TS
 *.tsbuildinfo
