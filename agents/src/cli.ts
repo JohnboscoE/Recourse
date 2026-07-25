@@ -15,7 +15,8 @@ import { approveUsdc, createJob, claim, payToSubject } from "./actions.js";
  * Run e.g.:  pnpm --filter @recourse/agents cli -- post --subject 0x.. --min 0.1 --pay 0.05
  */
 
-const argv = process.argv.slice(2);
+// Drop any standalone "--" that the package manager may forward as an argument.
+const argv = process.argv.slice(2).filter((a) => a !== "--");
 const cmd = argv[0];
 
 function flag(name: string, fallback?: string): string | undefined {
