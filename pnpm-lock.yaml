@@ -20,6 +20,9 @@ importers:
       '@recourse/shared':
         specifier: workspace:*
         version: link:../packages/shared
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       viem:
         specifier: ^2.21.0
         version: 2.55.8(typescript@5.9.3)

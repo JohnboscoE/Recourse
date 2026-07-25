@@ -22,6 +22,23 @@ welcome. Even small papercuts count — they add up to the teardown.
 - [ ] Chain ID reported for Base in `transactionHashes[]` — confirm `8453`.
 - [ ] Is `gasUsedWei` populated for a simple ERC-20 transfer?
 
+## Bounty target — "Best Onboarding UX Improvement" ($500 × 2 winners, stackable)
+
+Goal: get a new builder from zero to first landed transaction faster / with less
+friction. Winning forms (aim for at least one, ideally a mergeable PR):
+- **A merged PR to the KeeperHub repo** — docs, quickstart, CLI/setup UX, clearer
+  error messages, or a setup script. (Bonus: merged *during* the event.)
+- **A starter template / boilerplate** that gets a new builder running fast —
+  our `scripts/` (check-auth, execute-transfer, fetch-execution) + `.env` flow +
+  the ExecutionRecord type are basically this already; package them up.
+- **A teardown** of where we got stuck, with concrete proposed fixes (this log).
+
+Candidate PRs from friction found so far:
+1. Document that the `kh_` key works for REST as `Authorization: Bearer` (item #1)
+   — currently only discoverable by trial.
+2. Surface the wallet custody model + withdrawal path at signup (item #2).
+3. Highlight gas sponsorship in onboarding (item #3) to reduce funding anxiety.
+
 ## Teardown notes (fill in as themes emerge)
 
 _Group the friction above into 2–4 concrete improvement suggestions once week one
