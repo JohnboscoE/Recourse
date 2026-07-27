@@ -1,5 +1,9 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { api } from "../api.js";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input, Label } from "@/components/ui/input";
+import { Button } from "@/components/ui/liquid-glass-button";
 
 interface Props {
   defaultSubject: string;
@@ -7,7 +11,7 @@ interface Props {
 }
 
 /**
- * Posts a job. A job is a signed statement of exactly one shape:
+ * Posts a job. A job is a statement of exactly one shape:
  * "address X's USDC balance increases by >= N by time T."
  */
 export function PostJobForm({ defaultSubject, onPosted }: Props) {
@@ -32,75 +36,78 @@ export function PostJobForm({ defaultSubject, onPosted }: Props) {
     }
   }
 
-  const field = "w-full bg-[#0b0e14] border border-[#232b3a] rounded px-3 py-2 text-sm font-mono";
-  const label = "block text-xs uppercase tracking-wide text-slate-400 mb-1";
-
   return (
-    <form onSubmit={submit} className="bg-[#131822] border border-[#232b3a] rounded-lg p-4">
-      <h2 className="font-semibold mb-1">Post a job</h2>
-      <p className="text-xs text-slate-400 mb-4">
-        Locks payment in escrow against a balance-delta promise.
-      </p>
-
-      <div className="space-y-3">
-        <div>
-          <label className={label}>Subject (address whose balance must rise)</label>
-          <input
-            className={field}
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="0x…"
-            spellCheck={false}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={label}>Required increase (USDC)</label>
-            <input
-              className={field}
-              value={minIncrease}
-              onChange={(e) => setMinIncrease(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={label}>Payment (USDC)</label>
-            <input
-              className={field}
-              value={payment}
-              onChange={(e) => setPayment(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className={label}>Deadline (minutes from now)</label>
-          <input
-            type="number"
-            min={1}
-            className={field}
-            value={deadlineMins}
-            onChange={(e) => setDeadlineMins(Number(e.target.value))}
-          />
-          <p className="text-xs text-slate-500 mt-1">
-            Short deadlines make the refund path demoable — use ~3 min to watch a job expire.
+    <Card>
+      <CardContent>
+        <form onSubmit={submit}>
+          <h2 className="text-sm font-semibold">Post a job</h2>
+          <p className="text-muted-foreground mt-1 mb-4 text-xs">
+            Locks payment in escrow against a balance-delta promise.
           </p>
-        </div>
-      </div>
 
-      {err && <p className="text-xs text-rose-400 mt-3 font-mono break-all">{err}</p>}
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="subject">
+                Subject — address whose balance must rise
+              </Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="0x…"
+                spellCheck={false}
+              />
+            </div>
 
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-4 w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40
-                   text-black font-semibold rounded px-4 py-2 text-sm"
-      >
-        {busy ? "Submitting…" : "Approve + create job via KeeperHub"}
-      </button>
-      <p className="text-xs text-slate-500 mt-2">
-        Two KeeperHub executions. Progress appears in the log — this can take a minute.
-      </p>
-    </form>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="min">Required increase</Label>
+                <Input
+                  id="min"
+                  value={minIncrease}
+                  onChange={(e) => setMinIncrease(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pay">Payment</Label>
+                <Input
+                  id="pay"
+                  value={payment}
+                  onChange={(e) => setPayment(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="deadline">Deadline (minutes from now)</Label>
+              <Input
+                id="deadline"
+                type="number"
+                min={1}
+                value={deadlineMins}
+                onChange={(e) => setDeadlineMins(Number(e.target.value))}
+              />
+              <p className="text-muted-foreground/70 mt-1.5 text-xs">
+                Short deadlines make the refund path demoable — try ~3 min to
+                watch a job expire.
+              </p>
+            </div>
+          </div>
+
+          {err && (
+            <p className="text-danger mt-3 font-mono text-xs break-all">{err}</p>
+          )}
+
+          <Button type="submit" disabled={busy} className="mt-4 w-full">
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {busy ? "Submitting…" : "Approve + create job via KeeperHub"}
+          </Button>
+          <p className="text-muted-foreground/70 mt-2 text-xs">
+            Two KeeperHub executions. Progress appears in the log — this can take
+            a minute.
+          </p>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

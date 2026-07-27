@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
+import { ArrowUpRight } from "lucide-react";
 import type { LogEvent, AppConfig } from "../api.js";
+import { cn } from "@/lib/utils";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 const LEVEL_STYLE: Record<LogEvent["level"], string> = {
-  info: "text-slate-300",
-  success: "text-emerald-400",
-  warn: "text-amber-400",
-  error: "text-rose-400",
+  info: "text-foreground/70",
+  success: "text-success",
+  warn: "text-warning",
+  error: "text-danger",
 };
 
 const LEVEL_MARK: Record<LogEvent["level"], string> = {
@@ -24,40 +27,46 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
   }, [events.length]);
 
   return (
-    <div className="bg-[#131822] border border-[#232b3a] rounded-lg flex flex-col h-full min-h-0">
-      <div className="px-4 py-3 border-b border-[#232b3a] flex items-center justify-between">
-        <h2 className="font-semibold text-sm">Execution log</h2>
-        <span className="text-xs text-slate-500">{events.length} events</span>
-      </div>
+    <Card className="flex h-full min-h-0 flex-col">
+      <CardHeader className="border-border border-b">
+        <CardTitle>Execution log</CardTitle>
+        <span className="text-muted-foreground text-xs">
+          {events.length} events
+        </span>
+      </CardHeader>
 
-      <div className="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-1.5 min-h-0">
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3 font-mono text-xs">
         {events.length === 0 && (
-          <p className="text-slate-500 p-2">
+          <p className="text-muted-foreground p-2">
             Nothing yet. Post a job, or run an agent against an open one.
           </p>
         )}
 
         {events.map((e) => (
           <div key={e.seq} className="leading-relaxed">
-            <span className="text-slate-600">{e.ts.slice(11, 19)} </span>
+            <span className="text-muted-foreground/50">{e.ts.slice(11, 19)} </span>
             <span className={LEVEL_STYLE[e.level]}>{LEVEL_MARK[e.level]} </span>
-            {e.jobId && <span className="text-sky-400">job#{e.jobId} </span>}
-            {e.phase && <span className="text-slate-500">[{e.phase}] </span>}
+            {e.jobId && <span className="text-info">job#{e.jobId} </span>}
+            {e.phase && <span className="text-muted-foreground/70">[{e.phase}] </span>}
             <span className={LEVEL_STYLE[e.level]}>{e.message}</span>
             {e.txHash && cfg && (
               <a
                 href={`${cfg.explorer}/tx/${e.txHash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="ml-2 text-slate-500 hover:text-sky-300 underline"
+                className={cn(
+                  "text-muted-foreground hover:text-primary ml-2",
+                  "inline-flex items-center gap-0.5 transition-colors",
+                )}
               >
-                {e.txHash.slice(0, 10)}… ↗
+                {e.txHash.slice(0, 10)}…
+                <ArrowUpRight className="size-3" />
               </a>
             )}
           </div>
         ))}
         <div ref={endRef} />
       </div>
-    </div>
+    </Card>
   );
 }

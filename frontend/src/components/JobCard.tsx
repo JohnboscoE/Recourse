@@ -1,4 +1,9 @@
+import { ArrowUpRight, Check, X } from "lucide-react";
 import { api, type JobView, type AppConfig } from "../api.js";
+import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge, STATUS_TONE, DECISION_TONE } from "@/components/ui/badge";
+import { Button } from "@/components/ui/liquid-glass-button";
 
 interface Props {
   job: JobView;
@@ -6,13 +11,6 @@ interface Props {
   nowSec: number;
   onAction: () => void;
 }
-
-const STATUS_STYLE: Record<string, string> = {
-  Open: "bg-sky-500/15 text-sky-300 border-sky-500/30",
-  Claimed: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-  Released: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-  Refunded: "bg-rose-500/15 text-rose-300 border-rose-500/30",
-};
 
 function short(addr: string) {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
@@ -28,6 +26,7 @@ function countdown(deadline: number, nowSec: number) {
 export function JobCard({ job, cfg, nowSec, onAction }: Props) {
   const deadline = Number(job.deadline);
   const settled = job.statusLabel === "Released" || job.statusLabel === "Refunded";
+  const isOpen = job.statusLabel === "Open";
   const pct = Math.min(
     100,
     (Number(job.observedIncrease) / Math.max(Number(job.minIncrease), 1e-9)) * 100,
@@ -41,120 +40,132 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
     }
   }
 
-  const btn =
-    "text-xs font-medium rounded px-3 py-1.5 border transition disabled:opacity-30 " +
-    "disabled:cursor-not-allowed";
-
   return (
-    <div className="bg-[#131822] border border-[#232b3a] rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">Job #{job.jobId}</span>
+    <Card>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Job #{job.jobId}</span>
+            <Badge tone={STATUS_TONE[job.statusLabel] ?? "neutral"}>
+              {job.statusLabel}
+            </Badge>
+          </div>
           <span
-            className={`text-xs px-2 py-0.5 rounded-full border ${
-              STATUS_STYLE[job.statusLabel] ?? "bg-slate-700 text-slate-300 border-slate-600"
-            }`}
+            className={cn(
+              "text-xs",
+              job.deadlinePassed ? "text-danger" : "text-muted-foreground",
+            )}
           >
-            {job.statusLabel}
+            {countdown(deadline, nowSec)}
           </span>
         </div>
-        <span className={`text-xs ${job.deadlinePassed ? "text-rose-400" : "text-slate-400"}`}>
-          {countdown(deadline, nowSec)}
-        </span>
-      </div>
 
-      {/* The verification predicate, made legible. */}
-      <div className="mb-3">
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-slate-400">
-            subject <span className="font-mono text-slate-300">{short(job.subject)}</span> balance
+        {/* The predicate, made legible: observed vs required. */}
+        <div>
+          <div className="mb-1 flex items-baseline justify-between text-xs">
+            <span className="text-muted-foreground">
+              subject{" "}
+              <span className="text-foreground/80 font-mono">
+                {short(job.subject)}
+              </span>{" "}
+              balance
+            </span>
+            <span
+              className={cn(
+                "font-mono",
+                job.deltaMet ? "text-success" : "text-warning",
+              )}
+            >
+              +{job.observedIncrease} / +{job.minIncrease} USDC
+            </span>
+          </div>
+          <div className="bg-background border-border h-1.5 overflow-hidden rounded border">
+            <div
+              className={cn(
+                "h-full transition-all duration-500",
+                job.deltaMet ? "bg-success" : "bg-warning",
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <span>
+            pays <span className="text-foreground/80">{job.paymentAmount} USDC</span>
           </span>
-          <span className={job.deltaMet ? "text-emerald-400" : "text-amber-400"}>
-            +{job.observedIncrease} / +{job.minIncrease} USDC
+          <span>
+            agent{" "}
+            <span className="text-foreground/80 font-mono">{short(job.agent)}</span>
           </span>
         </div>
-        <div className="h-1.5 bg-[#0b0e14] rounded overflow-hidden">
-          <div
-            className={`h-full ${job.deltaMet ? "bg-emerald-500" : "bg-amber-500"}`}
-            style={{ width: `${pct}%` }}
-          />
+
+        {job.executionRef && (
+          <div className="text-muted-foreground text-xs">
+            agent execution{" "}
+            <span className="text-foreground/80 font-mono">{job.executionRef}</span>
+          </div>
+        )}
+
+        {/* What the resolver would do right now, before anything is submitted. */}
+        <div className="border-border bg-background rounded border px-3 py-2 text-xs">
+          <span className="text-muted-foreground">resolver would </span>
+          <Badge tone={DECISION_TONE[job.pendingDecision.action] ?? "neutral"}>
+            {job.pendingDecision.action === "release" && <Check className="size-3" />}
+            {job.pendingDecision.action === "refund" && <X className="size-3" />}
+            {job.pendingDecision.action.toUpperCase()}
+          </Badge>
+          <span className="text-muted-foreground"> {job.pendingDecision.reason}</span>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400 mb-3">
-        <span>
-          pays <span className="text-slate-200">{job.paymentAmount} USDC</span>
-        </span>
-        <span>
-          agent <span className="font-mono text-slate-300">{short(job.agent)}</span>
-        </span>
-      </div>
-
-      {job.executionRef && (
-        <div className="text-xs mb-3">
-          <span className="text-slate-400">agent execution </span>
-          <span className="font-mono text-slate-300">{job.executionRef}</span>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!isOpen}
+            onClick={() => run(() => api.work(job.jobId, "honest"))}
+            className="border-success/40 text-success hover:bg-success-muted hover:text-success"
+          >
+            Run honest agent
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!isOpen}
+            onClick={() => run(() => api.work(job.jobId, "fail"))}
+            className="border-danger/40 text-danger hover:bg-danger-muted hover:text-danger"
+            title="Delivers half the required amount — the transfer still succeeds on-chain"
+          >
+            Run failing agent
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => run(() => api.resolve(job.jobId, true))}
+          >
+            Dry-run resolve
+          </Button>
+          <Button
+            size="sm"
+            disabled={settled || job.pendingDecision.action === "wait"}
+            onClick={() => run(() => api.resolve(job.jobId, false))}
+          >
+            Settle
+          </Button>
         </div>
-      )}
 
-      {/* What the resolver would do right now. */}
-      <div className="text-xs bg-[#0b0e14] border border-[#232b3a] rounded px-3 py-2 mb-3">
-        <span className="text-slate-400">resolver would </span>
-        <span
-          className={
-            job.pendingDecision.action === "release"
-              ? "text-emerald-400 font-semibold"
-              : job.pendingDecision.action === "refund"
-                ? "text-rose-400 font-semibold"
-                : "text-slate-300 font-semibold"
-          }
-        >
-          {job.pendingDecision.action.toUpperCase()}
-        </span>
-        <span className="text-slate-400"> — {job.pendingDecision.reason}</span>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          disabled={job.statusLabel !== "Open"}
-          onClick={() => run(() => api.work(job.jobId, "honest"))}
-          className={`${btn} border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10`}
-        >
-          Run honest agent
-        </button>
-        <button
-          disabled={job.statusLabel !== "Open"}
-          onClick={() => run(() => api.work(job.jobId, "fail"))}
-          className={`${btn} border-rose-500/40 text-rose-300 hover:bg-rose-500/10`}
-          title="Delivers half the required amount — the transfer still succeeds on-chain"
-        >
-          Run failing agent
-        </button>
-        <button
-          onClick={() => run(() => api.resolve(job.jobId, true))}
-          className={`${btn} border-slate-600 text-slate-300 hover:bg-slate-700/40`}
-        >
-          Dry-run resolve
-        </button>
-        <button
-          disabled={settled || job.pendingDecision.action === "wait"}
-          onClick={() => run(() => api.resolve(job.jobId, false))}
-          className={`${btn} border-sky-500/40 text-sky-300 hover:bg-sky-500/10`}
-        >
-          Settle
-        </button>
-      </div>
-
-      {cfg && (
-        <a
-          className="inline-block mt-3 text-xs text-slate-500 hover:text-slate-300 underline"
-          href={`${cfg.explorer}/address/${cfg.escrowAddress}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          view escrow on Basescan ↗
-        </a>
-      )}
-    </div>
+        {cfg && (
+          <a
+            className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 text-xs transition-colors"
+            href={`${cfg.explorer}/address/${cfg.escrowAddress}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            view escrow on Basescan
+            <ArrowUpRight className="size-3" />
+          </a>
+        )}
+      </CardContent>
+    </Card>
   );
 }

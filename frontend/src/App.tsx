@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { api, type AppConfig, type JobView, type LogEvent } from "./api.js";
 import { PostJobForm } from "./components/PostJobForm.js";
 import { JobCard } from "./components/JobCard.js";
@@ -72,76 +73,90 @@ export default function App() {
   if (showHero) return <Hero onEnter={() => setShowHero(false)} />;
 
   return (
-    <div className="h-full flex flex-col">
-      <header className="border-b border-[#232b3a] px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+    <div className="flex h-full flex-col">
+      <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
         <div>
           <h1 className="text-lg font-semibold">
-            Recourse <span className="text-slate-500 font-normal">— verified settlement</span>
+            Recourse{" "}
+            <span className="text-muted-foreground font-normal">
+              — verified settlement
+            </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Agents get paid when <em>chain state</em> matches the promise — not when the
-            transaction merely succeeds.
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            Agents get paid when <em>chain state</em> matches the promise — not
+            when the transaction merely succeeds.
           </p>
         </div>
 
         <div className="flex items-center gap-5 text-xs">
           <button
             onClick={() => setShowHero(true)}
-            className="text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+            className="text-muted-foreground hover:text-primary underline underline-offset-4 transition-colors"
           >
             landing
           </button>
+
           {balances && (
             <>
               <div>
-                <div className="text-slate-500">escrow held</div>
-                <div className="font-mono text-slate-200">{balances.escrowUsdc} USDC</div>
+                <div className="text-muted-foreground">escrow held</div>
+                <div className="font-mono">{balances.escrowUsdc} USDC</div>
               </div>
               <div>
-                <div className="text-slate-500">
+                <div className="text-muted-foreground">
                   KeeperHub wallet
                   {balances.stale && (
-                    <span className="ml-1 text-amber-400" title="RPC unavailable — last known value">
+                    <span
+                      className="text-warning ml-1"
+                      title="RPC unavailable — last known value"
+                    >
                       (stale)
                     </span>
                   )}
                 </div>
-                <div className="font-mono text-slate-200">{balances.walletUsdc} USDC</div>
+                <div className="font-mono">{balances.walletUsdc} USDC</div>
               </div>
             </>
           )}
+
           {cfg && (
             <a
               href={`${cfg.explorer}/address/${cfg.escrowAddress}`}
               target="_blank"
               rel="noreferrer"
-              className="text-slate-400 hover:text-sky-300 underline font-mono"
+              className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 font-mono transition-colors"
             >
-              {cfg.escrowAddress.slice(0, 8)}…{cfg.escrowAddress.slice(-4)} ↗
+              {cfg.escrowAddress.slice(0, 8)}…{cfg.escrowAddress.slice(-4)}
+              <ArrowUpRight className="size-3" />
             </a>
           )}
         </div>
       </header>
 
       {err && (
-        <div className="bg-rose-500/10 border-b border-rose-500/30 text-rose-300 text-xs px-6 py-2 font-mono">
+        <div className="border-danger/30 bg-danger-muted text-danger border-b px-6 py-2 font-mono text-xs">
           {err} — is the backend running on :3001?
         </div>
       )}
 
-      <main className="flex-1 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 p-5 min-h-0">
-        <div className="space-y-4 overflow-y-auto min-h-0 pr-1">
+      <main className="grid min-h-0 flex-1 gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
           <PostJobForm
             defaultSubject={cfg?.keeperHubWallet ?? ""}
             onPosted={() => void refreshJobs()}
           />
 
           <div className="space-y-3">
-            <h2 className="font-semibold text-sm text-slate-300">
-              Jobs {jobs.length > 0 && <span className="text-slate-500">({jobs.length})</span>}
+            <h2 className="text-sm font-semibold">
+              Jobs{" "}
+              {jobs.length > 0 && (
+                <span className="text-muted-foreground font-normal">
+                  ({jobs.length})
+                </span>
+              )}
             </h2>
             {jobs.length === 0 && (
-              <p className="text-xs text-slate-500">No jobs yet.</p>
+              <p className="text-muted-foreground text-xs">No jobs yet.</p>
             )}
             {jobs.map((j) => (
               <JobCard

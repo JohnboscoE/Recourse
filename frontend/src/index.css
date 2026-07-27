@@ -40,6 +40,26 @@
   --input: #232b3a;
   --ring: #10b981;
 
+  /*
+   * Semantic status colours. The job lifecycle has exactly four terminal-ish
+   * states and every surface renders them — pills, log lines, decision text,
+   * the landing animation. Naming them here means one definition instead of
+   * emerald/amber/rose/sky repeated across five files.
+   *
+   *   info    → Open        (funded, waiting for an agent)
+   *   warning → Claimed     (agent executed; promise not yet proven)
+   *   success → Released    (delta verified, agent paid)
+   *   danger  → Refunded    (delta not met, poster made whole)
+   */
+  --success: #10b981;
+  --success-muted: color-mix(in oklab, #10b981 15%, transparent);
+  --warning: #f59e0b;
+  --warning-muted: color-mix(in oklab, #f59e0b 15%, transparent);
+  --danger: #f43f5e;
+  --danger-muted: color-mix(in oklab, #f43f5e 15%, transparent);
+  --info: #38bdf8;
+  --info-muted: color-mix(in oklab, #38bdf8 15%, transparent);
+
   --radius: 0.5rem;
 }
 
@@ -63,6 +83,15 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
+  --color-info: var(--info);
+  --color-info-muted: var(--info-muted);
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
