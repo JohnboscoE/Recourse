@@ -3,6 +3,7 @@ import { api, type AppConfig, type JobView, type LogEvent } from "./api.js";
 import { PostJobForm } from "./components/PostJobForm.js";
 import { JobCard } from "./components/JobCard.js";
 import { EventLog } from "./components/EventLog.js";
+import { Hero } from "./components/Hero.js";
 
 export default function App() {
   const [cfg, setCfg] = useState<AppConfig | null>(null);
@@ -15,6 +16,9 @@ export default function App() {
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
+  // Board by default — it's the working tool. The landing screen is the opening
+  // shot for the demo video, reachable from the header.
+  const [showHero, setShowHero] = useState(false);
   const seqRef = useRef(0);
 
   const refreshJobs = useCallback(async () => {
@@ -65,6 +69,8 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  if (showHero) return <Hero onEnter={() => setShowHero(false)} />;
+
   return (
     <div className="h-full flex flex-col">
       <header className="border-b border-[#232b3a] px-6 py-4 flex items-center justify-between flex-wrap gap-3">
@@ -79,6 +85,12 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-5 text-xs">
+          <button
+            onClick={() => setShowHero(true)}
+            className="text-slate-400 hover:text-emerald-300 underline underline-offset-4"
+          >
+            landing
+          </button>
           {balances && (
             <>
               <div>

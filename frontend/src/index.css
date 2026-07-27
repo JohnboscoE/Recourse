@@ -1,5 +1,75 @@
 @import "tailwindcss";
 
+/*
+ * shadcn design tokens, Tailwind v4 style.
+ *
+ * The ui/ components lean on these heavily (bg-primary, text-primary-foreground,
+ * border-input, ring-ring, …). Without them those utilities resolve to nothing
+ * and the components render unstyled — so these are load-bearing, not cosmetic.
+ *
+ * Values are tuned to the app's existing dark palette rather than shadcn's
+ * defaults, so dropped-in components match the job board instead of fighting it.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Surfaces — same greys the job board already uses. */
+  --background: #0b0e14;
+  --foreground: #e6e9ef;
+  --card: #131822;
+  --card-foreground: #e6e9ef;
+  --popover: #131822;
+  --popover-foreground: #e6e9ef;
+
+  /* Emerald primary: matches the existing "post job" call to action. */
+  --primary: #10b981;
+  --primary-foreground: #04140d;
+
+  --secondary: #1b2230;
+  --secondary-foreground: #e6e9ef;
+  --muted: #1b2230;
+  --muted-foreground: #94a3b8;
+  --accent: #1f2937;
+  --accent-foreground: #e6e9ef;
+
+  --destructive: #f43f5e;
+  --destructive-foreground: #1a0508;
+
+  --border: #232b3a;
+  --input: #232b3a;
+  --ring: #10b981;
+
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+/* Project-specific aliases kept from before the shadcn tokens landed. */
 @theme {
   --color-ink: #0b0e14;
   --color-panel: #131822;
@@ -13,7 +83,7 @@ body,
 }
 
 body {
-  background: var(--color-ink);
-  color: #e6e9ef;
+  background: var(--background);
+  color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
