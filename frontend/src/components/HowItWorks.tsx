@@ -203,7 +203,7 @@ export function HowItWorks({ className }: { className?: string }) {
       </div>
 
       {/* Detail for the current stage. */}
-      <div className="border-border bg-card/70 mt-6 rounded-lg border p-4 backdrop-blur-sm">
+      <div className="glass mt-6 rounded-xl p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h3 className="text-foreground text-sm font-semibold">{copy.title}</h3>

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
 import { api, type AppConfig, type JobView, type LogEvent } from "./api.js";
 import { PostJobForm } from "./components/PostJobForm.js";
 import { JobCard } from "./components/JobCard.js";
 import { EventLog } from "./components/EventLog.js";
 import { Hero } from "./components/Hero.js";
+import { NavBar } from "./components/NavBar.js";
+
+type View = "board" | "landing";
 
 export default function App() {
   const [cfg, setCfg] = useState<AppConfig | null>(null);
@@ -17,9 +19,9 @@ export default function App() {
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
-  // Board by default — it's the working tool. The landing screen is the opening
-  // shot for the demo video, reachable from the header.
-  const [showHero, setShowHero] = useState(false);
+  // Board by default — it's the working tool. Overview is the pitch, and the
+  // opening shot for the demo video.
+  const [view, setView] = useState<View>("board");
   const seqRef = useRef(0);
 
   const refreshJobs = useCallback(async () => {
@@ -70,68 +72,41 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  if (showHero) return <Hero onEnter={() => setShowHero(false)} />;
+  const chrome = (
+    <NavBar
+      cfg={cfg}
+      balances={balances}
+      view={view}
+      onNavigate={setView}
+      connected={!err}
+    />
+  );
+
+  if (view === "landing") {
+    return (
+      <div className="h-full overflow-y-auto">
+        {chrome}
+        <Hero onEnter={() => setView("board")} />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4">
-        <div>
-          <h1 className="text-lg font-semibold">
-            Recourse{" "}
-            <span className="text-muted-foreground font-normal">
-              — verified settlement
-            </span>
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            Agents get paid when <em>chain state</em> matches the promise — not
-            when the transaction merely succeeds.
-          </p>
-        </div>
+    <div className="relative flex h-full flex-col">
+      {/* Ambient wash so the dashboard sits on the same material as the
+          landing page. Static rather than the animated canvas — the board is
+          a working surface and shouldn't burn a core on decoration. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60rem 40rem at 15% -10%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 60%)," +
+            "radial-gradient(50rem 30rem at 100% 0%, color-mix(in oklab, var(--info) 7%, transparent), transparent 55%)",
+        }}
+      />
 
-        <div className="flex items-center gap-5 text-xs">
-          <button
-            onClick={() => setShowHero(true)}
-            className="text-muted-foreground hover:text-primary underline underline-offset-4 transition-colors"
-          >
-            landing
-          </button>
-
-          {balances && (
-            <>
-              <div>
-                <div className="text-muted-foreground">escrow held</div>
-                <div className="font-mono">{balances.escrowUsdc} USDC</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">
-                  KeeperHub wallet
-                  {balances.stale && (
-                    <span
-                      className="text-warning ml-1"
-                      title="RPC unavailable — last known value"
-                    >
-                      (stale)
-                    </span>
-                  )}
-                </div>
-                <div className="font-mono">{balances.walletUsdc} USDC</div>
-              </div>
-            </>
-          )}
-
-          {cfg && (
-            <a
-              href={`${cfg.explorer}/address/${cfg.escrowAddress}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 font-mono transition-colors"
-            >
-              {cfg.escrowAddress.slice(0, 8)}…{cfg.escrowAddress.slice(-4)}
-              <ArrowUpRight className="size-3" />
-            </a>
-          )}
-        </div>
-      </header>
+      {chrome}
 
       {err && (
         <div className="border-danger/30 bg-danger-muted text-danger border-b px-6 py-2 font-mono text-xs">
@@ -147,14 +122,14 @@ export default function App() {
           />
 
           <div className="space-y-3">
-            <h2 className="text-sm font-semibold">
-              Jobs{" "}
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold">Jobs</h2>
               {jobs.length > 0 && (
-                <span className="text-muted-foreground font-normal">
-                  ({jobs.length})
+                <span className="text-muted-foreground text-xs">
+                  {jobs.length} total
                 </span>
               )}
-            </h2>
+            </div>
             {jobs.length === 0 && (
               <p className="text-muted-foreground text-xs">No jobs yet.</p>
             )}

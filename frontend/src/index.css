@@ -105,6 +105,62 @@
   --color-edge: #232b3a;
 }
 
+/*
+ * Glass surface. One definition so every panel in the app frosts identically
+ * instead of each component inventing its own blur + tint.
+ *
+ * Layered deliberately: a translucent tint, a blur that samples what's behind
+ * it, a hairline top highlight (what reads as "edge lit"), and a soft drop
+ * shadow to lift it off the page.
+ */
+@utility glass {
+  background: color-mix(in oklab, var(--card) 62%, transparent);
+  /* Do NOT hand-write -webkit-backdrop-filter here. Lightning CSS prefixes
+     from the browser targets, and a manual prefix makes it emit ONLY the
+     prefixed form — which silently kills the blur in Chrome and Firefox. */
+  backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid color-mix(in oklab, white 9%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in oklab, white 7%, transparent),
+    0 8px 28px -14px rgb(0 0 0 / 0.7);
+}
+
+/* Lighter weight, for bars that sit over content rather than holding it. */
+@utility glass-bar {
+  background: color-mix(in oklab, var(--background) 72%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid color-mix(in oklab, white 8%, transparent);
+}
+
+/*
+ * Moving light that travels around a border.
+ *
+ * Animating a raw conic-gradient is impossible — gradients don't interpolate.
+ * Registering the angle as a typed custom property makes it animatable, which
+ * is what lets the highlight actually travel rather than snap.
+ */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-travel {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
 html,
 body,
 #root {

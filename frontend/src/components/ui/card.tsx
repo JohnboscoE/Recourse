@@ -1,12 +1,28 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** The one panel surface in the app. Every boxed region uses this. */
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * The one panel surface in the app.
+ *
+ * `glass` (default) frosts over whatever sits behind it and is what gives the
+ * dashboard the same material as the landing page. `solid` is the opaque
+ * fallback for anywhere a blur would cost more than it earns — long scrolling
+ * lists, or nested panels where stacked blurs turn to mud.
+ */
+function Card({
+  className,
+  variant = "glass",
+  ...props
+}: React.ComponentProps<"div"> & { variant?: "glass" | "solid" }) {
   return (
     <div
       data-slot="card"
-      className={cn("bg-card border-border rounded-lg border", className)}
+      data-variant={variant}
+      className={cn(
+        "rounded-xl",
+        variant === "glass" ? "glass" : "bg-card border-border border",
+        className,
+      )}
       {...props}
     />
   );

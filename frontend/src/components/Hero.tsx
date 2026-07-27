@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import NeuralBackground from "@/components/ui/flow-field-background";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { GlowBorder } from "@/components/ui/glow-border";
 import { HowItWorks } from "@/components/HowItWorks";
+import { ProblemSolution } from "@/components/ProblemSolution";
 
 /**
  * Canvas needs literal colour values, not CSS classes, so read the design
@@ -26,19 +28,32 @@ function hexToRgbTriplet(hex: string, fallback: string) {
   return [m[1], m[2], m[3]].map((h) => parseInt(h, 16)).join(", ");
 }
 
-/**
- * Landing screen and opening shot for the demo video: the thesis in one line,
- * then an animation of the actual loop, then a way into the live board.
- */
+function Section({
+  eyebrow,
+  children,
+}: {
+  eyebrow: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-24 w-full">
+      <p className="text-muted-foreground mb-6 text-center text-xs tracking-[0.2em] uppercase">
+        {eyebrow}
+      </p>
+      {children}
+    </section>
+  );
+}
+
 export function Hero({ onEnter }: { onEnter: () => void }) {
   const accent = useToken("--primary", "#10b981");
   const surface = useToken("--background", "#0b0e14");
 
   return (
-    <div className="relative h-full w-full overflow-y-auto">
+    <div className="relative w-full">
       {/* Backdrop. fadeColor matches the page surface so trails fade into it
           rather than leaving a black haze. Fixed so it survives scrolling. */}
-      <div className="fixed inset-0">
+      <div className="fixed inset-0 -z-10">
         <NeuralBackground
           color={accent}
           scale={1}
@@ -48,10 +63,10 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
           fadeColor={hexToRgbTriplet(surface, "11, 14, 20")}
           className="bg-background"
         />
-        <div className="from-background/40 to-background pointer-events-none absolute inset-0 bg-gradient-to-b" />
+        <div className="from-background/30 via-background/70 to-background pointer-events-none absolute inset-0 bg-gradient-to-b" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-full max-w-3xl flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pt-20 pb-24 text-center">
         <div className="border-success/30 bg-success-muted text-success mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
           <ShieldCheck className="size-3.5" />
           Live on Base · executed via KeeperHub
@@ -67,20 +82,23 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
           payment in escrow until chain state proves the promise was kept.
         </p>
 
-        <LiquidButton onClick={onEnter} className="text-foreground mt-10">
-          Open the job board
-          <ArrowRight className="size-4" />
-        </LiquidButton>
+        {/* Primary CTA, with light travelling around the rim. */}
+        <GlowBorder radius="0.5rem" duration={4} className="mt-10">
+          <LiquidButton onClick={onEnter} className="text-foreground">
+            Open the dashboard
+            <ArrowRight className="size-4" />
+          </LiquidButton>
+        </GlowBorder>
 
-        {/* The loop, animated. */}
-        <div className="mt-20 w-full">
-          <p className="text-muted-foreground mb-6 text-xs tracking-[0.2em] uppercase">
-            How it works
-          </p>
+        <Section eyebrow="Why this exists">
+          <ProblemSolution />
+        </Section>
+
+        <Section eyebrow="How it works">
           <HowItWorks />
-        </div>
+        </Section>
 
-        <p className="text-muted-foreground/60 mt-12 font-mono text-xs">
+        <p className="text-muted-foreground/60 mt-16 font-mono text-xs">
           escrow 0xE21A…5982 · both settlement paths verified on-chain
         </p>
       </div>
