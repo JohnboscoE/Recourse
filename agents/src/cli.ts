@@ -1,7 +1,7 @@
 import { parseUnits, formatUnits } from "viem";
 import { JobStatus } from "@recourse/shared";
 import { config, USDC_DECIMALS } from "./config.js";
-import { readJob, readJobCount } from "./chain.js";
+import { readJob, readJobCount, readUsdcBalance } from "./chain.js";
 import { approveUsdc, createJob, claim, payToSubject } from "./actions.js";
 
 /**
@@ -11,6 +11,7 @@ import { approveUsdc, createJob, claim, payToSubject } from "./actions.js";
  *   post      --subject 0x.. --min 0.1 --pay 0.05 [--deadline-mins 30]
  *   work      <jobId>                 # honest agent: deliver >= min, then claim
  *   work-fail <jobId> [--send 0.02]   # failing agent: deliver too little, then claim
+ *   status                            # every job + wallet/escrow balances
  *
  * Run e.g.:  pnpm --filter @recourse/agents cli -- post --subject 0x.. --min 0.1 --pay 0.05
  */
@@ -92,6 +93,35 @@ async function work(fail: boolean) {
   console.log(`   Resolve: pnpm --filter @recourse/backend resolve ${jobId}`);
 }
 
+/** Read-only overview of every job plus the balances that back them. */
+async function status() {
+  const count = await readJobCount();
+  const nowSec = BigInt(Math.floor(Date.now() / 1000));
+  console.log(`escrow ${config.escrowAddress} — ${count} job(s)\n`);
+
+  for (let id = 1n; id <= count; id++) {
+    const job = await readJob(id);
+    const observed = (await readUsdcBalance(job.subject)) - job.baseline;
+    const secsLeft = job.deadline - nowSec;
+    const when =
+      secsLeft > 0n ? `${secsLeft}s left` : `deadline passed ${-secsLeft}s ago`;
+    console.log(
+      `Job #${id} ${JobStatus[job.status]}\n` +
+        `  subject   ${job.subject}\n` +
+        `  delta     ${formatUnits(observed, USDC_DECIMALS)} observed / ` +
+        `${formatUnits(job.minIncrease, USDC_DECIMALS)} required` +
+        `${observed >= job.minIncrease ? " ✅" : " ❌"}\n` +
+        `  payment   ${formatUnits(job.paymentAmount, USDC_DECIMALS)} USDC\n` +
+        `  deadline  ${new Date(Number(job.deadline) * 1000).toISOString()} (${when})\n` +
+        `  execRef   ${job.executionRef || "(none)"}`,
+    );
+  }
+
+  console.log(
+    `\nescrow USDC held: ${formatUnits(await readUsdcBalance(config.escrowAddress), USDC_DECIMALS)}`,
+  );
+}
+
 async function main() {
   switch (cmd) {
     case "post":
@@ -100,8 +130,10 @@ async function main() {
       return work(false);
     case "work-fail":
       return work(true);
+    case "status":
+      return status();
     default:
-      console.log("Usage: cli <post|work|work-fail> [...]");
+      console.log("Usage: cli <post|work|work-fail|status> [...]");
       process.exit(1);
   }
 }

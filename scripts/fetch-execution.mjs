@@ -1,81 +1,61 @@
 #!/usr/bin/env node
-// Pre-build probe: read one KeeperHub execution back through the audit trail and
-// dump the RAW JSON, so we can lock down the shared `ExecutionRecord` type from
-// the real response shape (not from docs prose).
+// Read one KeeperHub execution back out of the audit trail.
 //
-// We don't yet know whether an agent execution surfaces as a "workflow"
-// execution or a "direct" execution, so this tries several candidate endpoints
-// and prints whatever each returns. Whichever one comes back with real data is
-// the path our resolver will use.
+// The endpoint below was pinned during the pre-build check against a real
+// execution; the earlier version of this script probed several candidates
+// because the shape wasn't known yet. `ExecutionRecord` in packages/shared is
+// typed from this response.
 //
-// Usage (PowerShell) — key is loaded from the .env file, you never type it here:
-//   node --env-file=.env scripts/fetch-execution.mjs <executionId>
+// Usage (key is read from .env, never typed on the command line):
+//   node --env-file=.env scripts/fetch-execution.mjs <executionId> [--raw]
 //
-// Optional overrides:
-//   $env:KH_BASE_URL  = "https://app.keeperhub.com"   # default below
-//   $env:KH_WORKFLOW_ID = "<workflowId>"              # if it's a workflow run
+// Optional override:
+//   $env:KH_BASE_URL = "https://app.keeperhub.com"   # default below
 
 const apiKey = process.env.KH_API_KEY;
 const baseUrl = (process.env.KH_BASE_URL || "https://app.keeperhub.com").replace(/\/$/, "");
-const workflowId = process.env.KH_WORKFLOW_ID;
-const executionId = process.argv[2];
+const argv = process.argv.slice(2).filter((a) => a !== "--");
+const executionId = argv[0];
+const raw = argv.includes("--raw");
 
 if (!apiKey) {
   console.error("Missing KH_API_KEY env var. Set it to your kh_ API key.");
   process.exit(1);
 }
 if (!executionId) {
-  console.error("Usage: node scripts/fetch-execution.mjs <executionId>");
+  console.error("Usage: node --env-file=.env scripts/fetch-execution.mjs <executionId> [--raw]");
   process.exit(1);
 }
 
-// Candidate endpoints, in the order we think they're most likely to be real.
-// Add/remove as the docs firm up.
-const candidates = [
-  `/api/workflows/executions/${executionId}/status`,
-  `/api/workflows/executions/${executionId}/wait?timeoutMs=30000`,
-  `/api/direct-execution/${executionId}`,
-  `/api/direct-execution/${executionId}/status`,
-  `/api/executions/${executionId}`,
-];
-if (workflowId) {
-  candidates.unshift(`/api/workflows/${workflowId}/executions`);
+const url = `${baseUrl}/api/execute/${executionId}/status`;
+const res = await fetch(url, {
+  headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+});
+const text = await res.text();
+
+let body;
+try {
+  body = JSON.parse(text);
+} catch {
+  console.error(`[${res.status}] non-JSON response from ${url}:\n${text}`);
+  process.exit(1);
 }
 
-async function probe(path) {
-  const url = `${baseUrl}${path}`;
-  try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "application/json",
-      },
-    });
-    const text = await res.text();
-    let body;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = text; // non-JSON (HTML error page, etc.)
-    }
-    return { path, status: res.status, ok: res.ok, body };
-  } catch (err) {
-    return { path, status: 0, ok: false, body: String(err) };
-  }
+if (!res.ok) {
+  console.error(`[${res.status}] ${url}`);
+  console.error(JSON.stringify(body, null, 2));
+  process.exit(1);
 }
 
-console.log(`Base: ${baseUrl}`);
-console.log(`Execution: ${executionId}\n`);
-
-for (const path of candidates) {
-  const r = await probe(path);
-  const marker = r.ok ? "OK " : "-- ";
-  console.log(`${marker}[${r.status}] ${r.path}`);
-  console.log(JSON.stringify(r.body, null, 2));
-  console.log("");
+if (raw) {
+  console.log(JSON.stringify(body, null, 2));
+} else {
+  const tx = body.transactionHash;
+  console.log(`execution ${executionId}`);
+  console.log(`  status     ${body.status}`);
+  console.log(`  success    ${body.result?.success}`);
+  console.log(`  tx         ${tx ?? "(none)"}`);
+  if (tx) console.log(`  basescan   https://basescan.org/tx/${tx}`);
+  console.log(`  gasUsedWei ${body.gasUsedWei ?? "(none)"}`);
+  console.log(`  completed  ${body.completedAt ?? "(pending)"}`);
 }
-
-console.log(
-  "\nPaste the RAW JSON from whichever endpoint returned real execution data " +
-    "back into the chat — that becomes the ExecutionRecord shared type."
-);
