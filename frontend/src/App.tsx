@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Inbox, Plus } from "lucide-react";
 import { api, type AppConfig, type JobView, type LogEvent } from "./api.js";
 import { PostJobForm } from "./components/PostJobForm.js";
 import { JobCard } from "./components/JobCard.js";
 import { EventLog } from "./components/EventLog.js";
 import { Hero } from "./components/Hero.js";
 import { NavBar } from "./components/NavBar.js";
+import { MetricsRow } from "./components/MetricsRow.js";
+import { AmbientBackground } from "./components/ui/ambient-background.js";
+import { LiquidButton } from "./components/ui/liquid-glass-button.js";
+import { Card } from "./components/ui/card.js";
 
 type View = "board" | "landing";
 
@@ -19,9 +24,8 @@ export default function App() {
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
-  // Board by default — it's the working tool. Overview is the pitch, and the
-  // opening shot for the demo video.
   const [view, setView] = useState<View>("board");
+  const [composing, setComposing] = useState(false);
   const seqRef = useRef(0);
 
   const refreshJobs = useCallback(async () => {
@@ -35,7 +39,6 @@ export default function App() {
     }
   }, []);
 
-  // Initial load.
   useEffect(() => {
     api.config().then(setCfg).catch(() => {});
     void refreshJobs();
@@ -85,6 +88,7 @@ export default function App() {
   if (view === "landing") {
     return (
       <div className="h-full overflow-y-auto">
+        <AmbientBackground intensity="full" />
         {chrome}
         <Hero onEnter={() => setView("board")} />
       </div>
@@ -92,20 +96,8 @@ export default function App() {
   }
 
   return (
-    <div className="relative flex h-full flex-col">
-      {/* Ambient wash so the dashboard sits on the same material as the
-          landing page. Static rather than the animated canvas — the board is
-          a working surface and shouldn't burn a core on decoration. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(60rem 40rem at 15% -10%, color-mix(in oklab, var(--primary) 10%, transparent), transparent 60%)," +
-            "radial-gradient(50rem 30rem at 100% 0%, color-mix(in oklab, var(--info) 7%, transparent), transparent 55%)",
-        }}
-      />
-
+    <div className="h-full overflow-y-auto">
+      <AmbientBackground intensity="subtle" />
       {chrome}
 
       {err && (
@@ -114,39 +106,95 @@ export default function App() {
         </div>
       )}
 
-      <main className="grid min-h-0 flex-1 gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-h-0 space-y-4 overflow-y-auto pr-1">
-          <PostJobForm
-            defaultSubject={cfg?.keeperHubWallet ?? ""}
-            onPosted={() => void refreshJobs()}
-          />
+      <main className="mx-auto max-w-[1440px] px-6 py-8">
+        {/* Page header */}
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="display text-2xl font-semibold">Dashboard</h1>
+            <p className="text-muted-foreground mt-1.5 text-sm">
+              Escrowed jobs, settled against Base chain state — not against
+              transaction receipts.
+            </p>
+          </div>
 
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
+          {!composing && (
+            <LiquidButton size="lg" onClick={() => setComposing(true)}>
+              <Plus className="size-4" />
+              New job
+            </LiquidButton>
+          )}
+        </div>
+
+        <div className="mt-7">
+          <MetricsRow jobs={jobs} escrowUsdc={balances?.escrowUsdc ?? null} />
+        </div>
+
+        {composing && (
+          <div className="mt-6">
+            <PostJobForm
+              defaultSubject={cfg?.keeperHubWallet ?? ""}
+              onPosted={() => void refreshJobs()}
+              onClose={() => setComposing(false)}
+            />
+          </div>
+        )}
+
+        {/* Asymmetric split: jobs carry more weight than the log. */}
+        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <section>
+            <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold">Jobs</h2>
               {jobs.length > 0 && (
-                <span className="text-muted-foreground text-xs">
+                <span className="text-muted-foreground tnum text-xs">
                   {jobs.length} total
                 </span>
               )}
             </div>
-            {jobs.length === 0 && (
-              <p className="text-muted-foreground text-xs">No jobs yet.</p>
-            )}
-            {jobs.map((j) => (
-              <JobCard
-                key={j.jobId}
-                job={j}
-                cfg={cfg}
-                nowSec={nowSec}
-                onAction={() => void refreshJobs()}
-              />
-            ))}
-          </div>
-        </div>
 
-        <div className="min-h-0">
-          <EventLog events={events} cfg={cfg} />
+            {jobs.length === 0 ? (
+              <Card className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/10">
+                  <Inbox className="text-muted-foreground size-5" />
+                </span>
+                <h3 className="text-sm font-medium">No jobs yet</h3>
+                <p className="text-muted-foreground mt-1.5 max-w-xs text-xs leading-relaxed">
+                  Post one to lock USDC in escrow against a balance-delta
+                  promise, then run an agent against it.
+                </p>
+                {!composing && (
+                  <button
+                    onClick={() => setComposing(true)}
+                    className="text-primary mt-4 text-xs font-medium hover:underline"
+                  >
+                    Create the first job →
+                  </button>
+                )}
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {jobs.map((j) => (
+                  <JobCard
+                    key={j.jobId}
+                    job={j}
+                    cfg={cfg}
+                    nowSec={nowSec}
+                    onAction={() => void refreshJobs()}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Log follows the page but stays in view while scrolling jobs. */}
+          <section className="xl:sticky xl:top-24">
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold">Execution log</h2>
+              <span className="text-muted-foreground tnum text-xs">
+                {events.length} events
+              </span>
+            </div>
+            <EventLog events={events} cfg={cfg} />
+          </section>
         </div>
       </main>
     </div>

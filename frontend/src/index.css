@@ -161,6 +161,27 @@
   }
 }
 
+/* Figures in metrics and tables must not jitter as values change. */
+@utility tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Display type: tighter than body copy, which is what reads as "designed". */
+@utility display {
+  letter-spacing: -0.02em;
+  font-feature-settings: "ss01", "cv01";
+}
+
+/* Small structural label. Used for every metric caption and section eyebrow. */
+@utility label-xs {
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
 html,
 body,
 #root {

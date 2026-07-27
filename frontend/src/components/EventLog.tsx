@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ArrowUpRight } from "lucide-react";
 import type { LogEvent, AppConfig } from "../api.js";
 import { cn } from "@/lib/utils";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 const LEVEL_STYLE: Record<LogEvent["level"], string> = {
   info: "text-foreground/70",
@@ -27,15 +27,8 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
   }, [events.length]);
 
   return (
-    <Card className="flex h-full min-h-0 flex-col">
-      <CardHeader className="border-border border-b">
-        <CardTitle>Execution log</CardTitle>
-        <span className="text-muted-foreground text-xs">
-          {events.length} events
-        </span>
-      </CardHeader>
-
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-3 font-mono text-xs">
+    <Card className="flex flex-col overflow-hidden">
+      <div className="h-[calc(100vh-16rem)] min-h-[24rem] space-y-1.5 overflow-y-auto p-4 font-mono text-xs">
         {events.length === 0 && (
           <p className="text-muted-foreground p-2">
             Nothing yet. Post a job, or run an agent against an open one.

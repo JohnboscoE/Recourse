@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { api } from "../api.js";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/liquid-glass-button";
 
 interface Props {
   defaultSubject: string;
   onPosted: () => void;
+  onClose: () => void;
 }
 
 /**
  * Posts a job. A job is a statement of exactly one shape:
  * "address X's USDC balance increases by >= N by time T."
  */
-export function PostJobForm({ defaultSubject, onPosted }: Props) {
+export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
   const [subject, setSubject] = useState(defaultSubject);
   const [minIncrease, setMinIncrease] = useState("0.1");
   const [payment, setPayment] = useState("0.05");
@@ -29,6 +30,7 @@ export function PostJobForm({ defaultSubject, onPosted }: Props) {
     try {
       await api.postJob({ subject, minIncrease, payment, deadlineMins });
       onPosted();
+      onClose();
     } catch (e) {
       setErr(String(e));
     } finally {
@@ -37,49 +39,55 @@ export function PostJobForm({ defaultSubject, onPosted }: Props) {
   }
 
   return (
-    <Card>
-      <CardContent>
-        <form onSubmit={submit}>
-          <h2 className="text-sm font-semibold">Post a job</h2>
-          <p className="text-muted-foreground mt-1 mb-4 text-xs">
+    <Card className="overflow-hidden">
+      <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+        <div>
+          <h2 className="text-sm font-semibold">New job</h2>
+          <p className="text-muted-foreground mt-1 text-xs">
             Locks payment in escrow against a balance-delta promise.
           </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground -mt-1 -mr-1 rounded-md p-1.5 transition-colors hover:bg-white/[0.06]"
+          aria-label="Close"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
 
-          <div className="space-y-3">
+      <form onSubmit={submit} className="p-5">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="subject">Subject — whose balance must rise</Label>
+            <Input
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="0x…"
+              spellCheck={false}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label htmlFor="subject">
-                Subject — address whose balance must rise
-              </Label>
+              <Label htmlFor="min">Required</Label>
               <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="0x…"
-                spellCheck={false}
+                id="min"
+                value={minIncrease}
+                onChange={(e) => setMinIncrease(e.target.value)}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="min">Required increase</Label>
-                <Input
-                  id="min"
-                  value={minIncrease}
-                  onChange={(e) => setMinIncrease(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="pay">Payment</Label>
-                <Input
-                  id="pay"
-                  value={payment}
-                  onChange={(e) => setPayment(e.target.value)}
-                />
-              </div>
-            </div>
-
             <div>
-              <Label htmlFor="deadline">Deadline (minutes from now)</Label>
+              <Label htmlFor="pay">Payment</Label>
+              <Input
+                id="pay"
+                value={payment}
+                onChange={(e) => setPayment(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="deadline">Deadline (min)</Label>
               <Input
                 id="deadline"
                 type="number"
@@ -87,27 +95,29 @@ export function PostJobForm({ defaultSubject, onPosted }: Props) {
                 value={deadlineMins}
                 onChange={(e) => setDeadlineMins(Number(e.target.value))}
               />
-              <p className="text-muted-foreground/70 mt-1.5 text-xs">
-                Short deadlines make the refund path demoable — try ~3 min to
-                watch a job expire.
-              </p>
             </div>
           </div>
 
-          {err && (
-            <p className="text-danger mt-3 font-mono text-xs break-all">{err}</p>
-          )}
-
-          <Button type="submit" disabled={busy} className="mt-4 w-full">
-            {busy && <Loader2 className="size-4 animate-spin" />}
-            {busy ? "Submitting…" : "Approve + create job via KeeperHub"}
-          </Button>
-          <p className="text-muted-foreground/70 mt-2 text-xs">
-            Two KeeperHub executions. Progress appears in the log — this can take
-            a minute.
+          <p className="text-muted-foreground/70 text-xs">
+            Short deadlines make the refund path demoable — try ~3 min to watch a
+            job expire.
           </p>
-        </form>
-      </CardContent>
+        </div>
+
+        {err && (
+          <p className="text-danger mt-4 font-mono text-xs break-all">{err}</p>
+        )}
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <p className="text-muted-foreground/70 text-xs">
+            Two KeeperHub executions — this can take a minute.
+          </p>
+          <Button type="submit" disabled={busy}>
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {busy ? "Submitting…" : "Approve + create"}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

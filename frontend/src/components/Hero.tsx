@@ -1,32 +1,8 @@
-import { useEffect, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import NeuralBackground from "@/components/ui/flow-field-background";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { GlowBorder } from "@/components/ui/glow-border";
 import { HowItWorks } from "@/components/HowItWorks";
 import { ProblemSolution } from "@/components/ProblemSolution";
-
-/**
- * Canvas needs literal colour values, not CSS classes, so read the design
- * tokens back out of the stylesheet rather than hardcoding a second copy.
- */
-function useToken(name: string, fallback: string) {
-  const [value, setValue] = useState(fallback);
-  useEffect(() => {
-    const v = getComputedStyle(document.documentElement)
-      .getPropertyValue(name)
-      .trim();
-    if (v) setValue(v);
-  }, [name]);
-  return value;
-}
-
-/** "#0b0e14" → "11, 14, 20" for the canvas trail fade. */
-function hexToRgbTriplet(hex: string, fallback: string) {
-  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex.trim());
-  if (!m) return fallback;
-  return [m[1], m[2], m[3]].map((h) => parseInt(h, 16)).join(", ");
-}
 
 function Section({
   eyebrow,
@@ -46,26 +22,10 @@ function Section({
 }
 
 export function Hero({ onEnter }: { onEnter: () => void }) {
-  const accent = useToken("--primary", "#10b981");
-  const surface = useToken("--background", "#0b0e14");
-
   return (
     <div className="relative w-full">
-      {/* Backdrop. fadeColor matches the page surface so trails fade into it
-          rather than leaving a black haze. Fixed so it survives scrolling. */}
-      <div className="fixed inset-0 -z-10">
-        <NeuralBackground
-          color={accent}
-          scale={1}
-          trailOpacity={0.1}
-          speed={0.8}
-          particleCount={700}
-          fadeColor={hexToRgbTriplet(surface, "11, 14, 20")}
-          className="bg-background"
-        />
-        <div className="from-background/30 via-background/70 to-background pointer-events-none absolute inset-0 bg-gradient-to-b" />
-      </div>
-
+      {/* Backdrop is mounted by App via <AmbientBackground intensity="full" />,
+          so both views share one definition instead of drifting apart. */}
       <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pt-20 pb-24 text-center">
         <div className="border-success/30 bg-success-muted text-success mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
           <ShieldCheck className="size-3.5" />
