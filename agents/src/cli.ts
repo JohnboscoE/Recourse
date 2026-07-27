@@ -3,6 +3,7 @@ import { JobStatus } from "@recourse/shared";
 import { config, USDC_DECIMALS } from "./config.js";
 import { readJob, readJobCount, readUsdcBalance } from "./chain.js";
 import { approveUsdc, createJob, claim, payToSubject } from "./actions.js";
+import { listMcpTools, getExecutionVia } from "./keeperhub.js";
 
 /**
  * Worker-agent CLI. Drives the full loop against the live escrow, with every
@@ -77,7 +78,7 @@ async function work(fail: boolean) {
   );
 
   console.log("1/2 executing paying transfer via KeeperHub...");
-  const work = await payToSubject(job.subject, sendBase);
+  const work = await payToSubject(job.subject, sendBase, jobId);
   console.log(`    work tx: ${work.transactionHash} (executionId ${work.executionId})`);
 
   console.log("2/2 claim via KeeperHub (recording executionId)...");
@@ -122,6 +123,51 @@ async function status() {
   );
 }
 
+/**
+ * Capability discovery: ask the KeeperHub MCP server what it can do. The agent
+ * does not hardcode an endpoint list — it asks, then calls what it finds.
+ */
+async function tools() {
+  requireEnv();
+  const found = await listMcpTools();
+  const filter = argv[1]?.toLowerCase();
+  const shown = filter
+    ? found.filter((t) => t.name.toLowerCase().includes(filter))
+    : found;
+
+  console.log(
+    `KeeperHub MCP (${config.keeperHub.baseUrl}${config.keeperHub.mcpPath}) — ` +
+      `${found.length} tools${filter ? `, ${shown.length} matching "${filter}"` : ""}\n`,
+  );
+  for (const t of shown) {
+    console.log(`• ${t.name}`);
+    if (t.description) {
+      console.log(`    ${(t.description.split("\n")[0] ?? "").slice(0, 120)}`);
+    }
+  }
+  console.log(`\nExecution transport in use: ${config.keeperHub.transport}`);
+}
+
+/** Audit-trail lookup for one execution, over whichever transport is active. */
+async function exec() {
+  requireEnv();
+  const id = argv[1];
+  if (!id) throw new Error("usage: cli exec <executionId>");
+
+  const { record: rec, via } = await getExecutionVia(id);
+  console.log(`execution ${rec.executionId}  (served via ${via})`);
+  console.log(`  status     ${rec.status}`);
+  console.log(`  success    ${rec.result?.success}`);
+  console.log(`  call       ${rec.result?.executedCall?.functionSignature ?? rec.type ?? "—"}`);
+  console.log(`  tx         ${rec.transactionHash ?? "(none)"}`);
+  if (rec.transactionHash) {
+    console.log(`  basescan   https://basescan.org/tx/${rec.transactionHash}`);
+  }
+  console.log(`  gasUsedWei ${rec.gasUsedWei ?? "—"}   retries ${rec.retryCount ?? 0}`);
+  console.log(`  sponsored  ${rec.result?.sponsored ?? "—"}`);
+  console.log(`  completed  ${rec.completedAt ?? "(pending)"}`);
+}
+
 async function main() {
   switch (cmd) {
     case "post":
@@ -132,8 +178,12 @@ async function main() {
       return work(true);
     case "status":
       return status();
+    case "tools":
+      return tools();
+    case "exec":
+      return exec();
     default:
-      console.log("Usage: cli <post|work|work-fail|status> [...]");
+      console.log("Usage: cli <post|work|work-fail|status|tools|exec> [...]");
       process.exit(1);
   }
 }

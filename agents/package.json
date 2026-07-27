@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@keeperhub/wallet": "^0.1.15",
     "@recourse/shared": "workspace:*",
     "dotenv": "^16.4.5",
     "viem": "^2.21.0"

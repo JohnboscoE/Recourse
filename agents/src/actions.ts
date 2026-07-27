@@ -54,9 +54,25 @@ export async function claim(jobId: bigint, executionRef: string) {
   return waitTerminal(executionId);
 }
 
-/** The agent's actual work: transfer USDC to the subject. Returns the exec record. */
-export async function payToSubject(subject: string, amountBase: bigint): Promise<ExecutionRecord> {
+/**
+ * The agent's actual work: transfer USDC to the subject.
+ *
+ * This is the one call where a retry after an ambiguous failure would send the
+ * money twice, so it carries a deterministic idempotency key derived from the
+ * job. Replaying it within KeeperHub's 24h window returns the original
+ * execution instead of paying again.
+ */
+export async function payToSubject(
+  subject: string,
+  amountBase: bigint,
+  jobId?: bigint,
+): Promise<ExecutionRecord> {
   const human = formatUnits(amountBase, USDC_DECIMALS);
-  const { executionId } = await transfer({ to: subject, amount: human, tokenAddress: USDC_BASE });
+  const { executionId } = await transfer({
+    to: subject,
+    amount: human,
+    tokenAddress: USDC_BASE,
+    idempotencyKey: jobId === undefined ? undefined : `recourse:pay:${jobId}:${amountBase}`,
+  });
   return waitTerminal(executionId);
 }

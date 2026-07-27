@@ -209,7 +209,7 @@ export function startWork(jobId: bigint, mode: "honest" | "fail", sendOverride?:
     });
 
     log({ level: "info", jobId: id, phase: "work", message: "1/2 transfer via KeeperHub…" });
-    const work = await payToSubject(job.subject, sendBase);
+    const work = await payToSubject(job.subject, sendBase, jobId);
     log({
       level: "info",
       jobId: id,
