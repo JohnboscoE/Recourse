@@ -1,28 +1,102 @@
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { config } from "./config.js";
 import { readJobCount } from "./chain.js";
 import { resolveJob } from "./resolver.js";
+import { since, latestSeq, log } from "./eventlog.js";
+import {
+  listJobs,
+  getJobView,
+  getJobAudit,
+  getBalances,
+  startPostJob,
+  startWork,
+  startResolve,
+} from "./jobs.js";
 
 // JSON can't serialize bigint; render them as strings.
 (BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
   return this.toString();
 };
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: { level: "warn" } });
+await app.register(cors, { origin: true });
 
 app.get("/health", async () => ({ ok: true, service: "recourse-backend" }));
 
-// Resolve one job now. ?dryRun=1 to decide without submitting the settlement.
-app.get<{ Params: { jobId: string }; Querystring: { dryRun?: string } }>(
-  "/resolve/:jobId",
+/** Config the UI needs to render links and labels. */
+app.get("/config", async () => ({
+  escrowAddress: config.escrowAddress,
+  chainId: config.chain.id,
+  explorer: "https://basescan.org",
+  keeperHubWallet: config.keeperHubWallet,
+}));
+
+app.get("/balances", async () =>
+  getBalances(config.escrowAddress, config.keeperHubWallet as `0x${string}`),
+);
+
+// ---- Job board ----------------------------------------------------------
+
+app.get("/jobs", async () => ({ jobs: await listJobs() }));
+
+app.get<{ Params: { jobId: string } }>("/jobs/:jobId", async (req) => ({
+  job: await getJobView(BigInt(req.params.jobId)),
+  audit: await getJobAudit(BigInt(req.params.jobId)),
+}));
+
+/** Post a new job. Returns immediately; progress arrives over /events. */
+app.post<{
+  Body: { subject: string; minIncrease: string; payment: string; deadlineMins?: number };
+}>("/jobs", async (req, reply) => {
+  const { subject, minIncrease, payment, deadlineMins = 30 } = req.body ?? {};
+  if (!subject || !/^0x[a-fA-F0-9]{40}$/.test(subject)) {
+    return reply.code(400).send({ error: "subject must be a 0x address" });
+  }
+  if (!minIncrease || !payment) {
+    return reply.code(400).send({ error: "minIncrease and payment are required" });
+  }
+  startPostJob({ subject, minIncrease, payment, deadlineMins });
+  return { started: true, sinceSeq: latestSeq() };
+});
+
+/** Run a worker agent against a job: mode "honest" or "fail". */
+app.post<{ Params: { jobId: string }; Body: { mode?: "honest" | "fail"; send?: string } }>(
+  "/jobs/:jobId/work",
   async (req) => {
-    const jobId = BigInt(req.params.jobId);
-    const dryRun = req.query.dryRun === "1" || req.query.dryRun === "true";
-    return resolveJob(jobId, { dryRun });
+    const mode = req.body?.mode === "fail" ? "fail" : "honest";
+    startWork(BigInt(req.params.jobId), mode, req.body?.send);
+    return { started: true, sinceSeq: latestSeq() };
   },
 );
 
-// Sweep every active job once (dry-run by default via ?dryRun=1).
+/** Settle a job. ?dryRun=1 decides without submitting. */
+app.post<{ Params: { jobId: string }; Querystring: { dryRun?: string } }>(
+  "/jobs/:jobId/resolve",
+  async (req) => {
+    const dryRun = req.query.dryRun === "1" || req.query.dryRun === "true";
+    startResolve(BigInt(req.params.jobId), dryRun);
+    return { started: true, sinceSeq: latestSeq() };
+  },
+);
+
+// ---- Event log ----------------------------------------------------------
+
+app.get<{ Querystring: { since?: string } }>("/events", async (req) => {
+  const from = Number(req.query.since ?? 0);
+  return { events: since(Number.isFinite(from) ? from : 0), latestSeq: latestSeq() };
+});
+
+// ---- Existing resolver endpoints (kept for CLI/ops parity) --------------
+
+app.get<{ Params: { jobId: string }; Querystring: { dryRun?: string } }>(
+  "/resolve/:jobId",
+  async (req) => {
+    const dryRun = req.query.dryRun === "1" || req.query.dryRun === "true";
+    return resolveJob(BigInt(req.params.jobId), { dryRun });
+  },
+);
+
 app.get<{ Querystring: { dryRun?: string } }>("/resolve", async (req) => {
   const dryRun = req.query.dryRun === "1" || req.query.dryRun === "true";
   const count = await readJobCount();
@@ -33,7 +107,8 @@ app.get<{ Querystring: { dryRun?: string } }>("/resolve", async (req) => {
   return { count: count.toString(), reports };
 });
 
-// Optional background sweep loop (enable with RESOLVER_POLL_MS > 0).
+// ---- Background sweep ---------------------------------------------------
+
 function startPollLoop() {
   if (config.pollIntervalMs <= 0) return;
   const tick = async () => {
@@ -42,7 +117,13 @@ function startPollLoop() {
       for (let id = 1n; id <= count; id++) {
         const r = await resolveJob(id);
         if (r.decision.action !== "wait") {
-          app.log.info({ jobId: r.jobId, decision: r.decision, settlement: r.settlement }, "resolved");
+          log({
+            level: r.decision.action === "release" ? "success" : "warn",
+            jobId: r.jobId,
+            phase: "sweep",
+            message: `auto-resolved: ${r.decision.action.toUpperCase()} — ${r.decision.reason}`,
+            executionId: r.settlement?.executionId,
+          });
         }
       }
     } catch (err) {
@@ -50,13 +131,14 @@ function startPollLoop() {
     }
   };
   setInterval(tick, config.pollIntervalMs);
-  app.log.info(`resolver poll loop every ${config.pollIntervalMs}ms`);
 }
 
 app
   .listen({ port: config.port, host: "0.0.0.0" })
   .then(() => {
-    app.log.info(`recourse-backend on :${config.port} (escrow: ${config.escrowAddress || "unset"})`);
+    console.log(
+      `recourse-backend on :${config.port} (escrow: ${config.escrowAddress || "unset"})`,
+    );
     startPollLoop();
   })
   .catch((err) => {

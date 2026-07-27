@@ -9,6 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "pnpm --parallel --filter @recourse/backend --filter @recourse/frontend dev",
     "backend": "pnpm --filter @recourse/backend dev",
     "agent": "pnpm --filter @recourse/agents dev",
     "frontend": "pnpm --filter @recourse/frontend dev",

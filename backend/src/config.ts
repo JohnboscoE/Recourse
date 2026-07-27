@@ -22,6 +22,9 @@ export const config = {
     rpcUrl: process.env.BASE_RPC_URL ?? "https://mainnet.base.org",
   },
   escrowAddress: (process.env.ESCROW_ADDRESS ?? "") as `0x${string}`,
+  /** KeeperHub-provisioned execution wallet — the poster/agent in demo runs. */
+  keeperHubWallet: (process.env.KH_WALLET_ADDRESS ??
+    "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA") as `0x${string}`,
   port: Number(process.env.PORT ?? 3001),
   /** Poll interval for the resolver loop, ms. 0 disables the loop. */
   pollIntervalMs: Number(process.env.RESOLVER_POLL_MS ?? 0),
