@@ -1,8 +1,8 @@
-import { ArrowUpRight, Check, Clock, Target, User, X } from "lucide-react";
+import { ArrowUpRight, Clock } from "lucide-react";
 import { api, type JobView, type AppConfig } from "../api.js";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
-import { Badge, STATUS_TONE, DECISION_TONE } from "@/components/ui/badge";
+import { Badge, STATUS_TONE } from "@/components/ui/badge";
 import { Button } from "@/components/ui/liquid-glass-button";
 
 interface Props {
@@ -27,28 +27,24 @@ function countdown(deadline: number, nowSec: number) {
   return m < 60 ? `${m}m ${left % 60}s left` : `${Math.floor(m / 60)}h ${m % 60}m left`;
 }
 
-/** One labelled fact. Keeps the meta row on a consistent rhythm. */
-function Fact({
-  icon: Icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: typeof User;
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+/**
+ * One labelled fact. No box, no divider — the label/value pair and the space
+ * around it are enough structure. Boxing these was pure noise.
+ */
+function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-muted-foreground/70 flex items-center gap-1 text-[10px] tracking-wide uppercase">
-        <Icon className="size-3" />
-        {label}
-      </div>
-      <div className={cn("mt-1 truncate text-xs", mono && "font-mono")}>{value}</div>
+      <div className="label-xs">{label}</div>
+      <div className="mt-2 truncate font-mono text-[13px]">{value}</div>
     </div>
   );
 }
+
+const DECISION_DOT: Record<string, string> = {
+  release: "bg-success",
+  refund: "bg-danger",
+  wait: "bg-muted-foreground/50",
+};
 
 export function JobCard({ job, cfg, nowSec, onAction }: Props) {
   const deadline = Number(job.deadline);
@@ -71,27 +67,15 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden transition-colors",
-        // Settled jobs recede; live ones hold attention.
-        settled && "opacity-[0.72] hover:opacity-100",
+        "transition-opacity duration-300",
+        settled && "opacity-70 hover:opacity-100",
       )}
     >
-      {/* Status spine — reads the job's state before any text is parsed. */}
-      <div
-        aria-hidden
-        className={cn(
-          "absolute inset-y-0 left-0 w-px",
-          job.statusLabel === "Released" && "bg-success/60",
-          job.statusLabel === "Refunded" && "bg-danger/60",
-          job.statusLabel === "Claimed" && "bg-warning/60",
-          job.statusLabel === "Open" && "bg-info/60",
-        )}
-      />
-
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="rounded-md bg-white/[0.06] px-2 py-1 font-mono text-xs ring-1 ring-white/10">
+      <div className="p-7">
+        {/* Identity */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-baseline gap-3">
+            <span className="text-muted-foreground font-mono text-sm">
               #{job.jobId}
             </span>
             <Badge tone={STATUS_TONE[job.statusLabel] ?? "neutral"}>
@@ -101,93 +85,95 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
 
           <div
             className={cn(
-              "flex items-center gap-1 text-xs",
-              job.deadlinePassed ? "text-danger" : "text-muted-foreground",
+              "flex items-center gap-1.5 text-xs",
+              job.deadlinePassed ? "text-danger/90" : "text-muted-foreground",
             )}
           >
-            <Clock className="size-3" />
+            <Clock className="size-3.5" />
             {countdown(deadline, nowSec)}
           </div>
         </div>
 
-        {/* The predicate — the reason this card exists, so it gets the space. */}
-        <div className="mt-5">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <div className="label-xs">Balance delta</div>
-              <div className="mt-1.5 flex items-baseline gap-1.5">
-                <span
-                  className={cn(
-                    "display tnum text-2xl font-semibold",
-                    job.deltaMet ? "text-success" : "text-warning",
-                  )}
-                >
-                  +{job.observedIncrease}
-                </span>
-                <span className="text-muted-foreground tnum text-xs">
-                  / +{job.minIncrease} USDC required
-                </span>
-              </div>
-            </div>
-
-            <div className="text-right">
-              <div className="label-xs">Pays</div>
-              <div className="tnum mt-1.5 text-sm font-medium">
-                {job.paymentAmount} <span className="text-muted-foreground">USDC</span>
-              </div>
+        {/* The predicate. This is why the card exists, so it gets the scale. */}
+        <div className="mt-7 flex items-end justify-between gap-6">
+          <div>
+            <div className="label-xs">Balance delta</div>
+            <div className="mt-2.5 flex items-baseline gap-2">
+              <span
+                className={cn(
+                  "display tnum text-[2.25rem] leading-none font-semibold",
+                  job.deltaMet ? "text-success" : "text-warning",
+                )}
+              >
+                +{job.observedIncrease}
+              </span>
+              <span className="text-muted-foreground tnum text-sm">
+                / +{job.minIncrease}
+              </span>
             </div>
           </div>
 
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-700",
-                job.deltaMet ? "bg-success" : "bg-warning",
-              )}
-              style={{ width: `${pct}%` }}
-            />
+          <div className="text-right">
+            <div className="label-xs">Payment</div>
+            <div className="tnum mt-2.5 text-lg leading-none font-medium">
+              {job.paymentAmount}
+              <span className="text-muted-foreground ml-1 text-xs">USDC</span>
+            </div>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-4">
-          <Fact icon={Target} label="subject" value={short(job.subject)} mono />
-          <Fact icon={User} label="agent" value={short(job.agent)} mono />
-          <Fact
-            icon={Check}
-            label="execution"
-            value={job.executionRef || "—"}
-            mono
+        <div className="well mt-5 h-1.5 overflow-hidden rounded-full">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-700",
+              job.deltaMet ? "bg-success" : "bg-warning",
+            )}
+            style={{ width: `${pct}%` }}
           />
         </div>
 
-        {/* What the resolver would do right now, before anything is submitted. */}
-        <div className="mt-4 flex items-start gap-2 rounded-lg bg-white/[0.03] px-3 py-2.5 ring-1 ring-white/[0.06]">
-          <Badge tone={DECISION_TONE[job.pendingDecision.action] ?? "neutral"}>
-            {job.pendingDecision.action === "release" && <Check className="size-3" />}
-            {job.pendingDecision.action === "refund" && <X className="size-3" />}
-            {job.pendingDecision.action.toUpperCase()}
-          </Badge>
-          <p className="text-muted-foreground pt-0.5 text-xs leading-relaxed">
-            {job.pendingDecision.reason}
-          </p>
+        {/* Facts. Spacing carries the structure; no dividers, no boxes. */}
+        <div className="mt-7 grid grid-cols-3 gap-6">
+          <Fact label="Subject" value={short(job.subject)} />
+          <Fact label="Agent" value={short(job.agent)} />
+          <Fact label="Execution" value={job.executionRef || "—"} />
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        {/* Resolver's current verdict — a dot and a sentence, not a panel. */}
+        <div className="mt-7 flex items-center gap-2.5 text-xs">
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              DECISION_DOT[job.pendingDecision.action] ?? "bg-muted-foreground/50",
+            )}
+          />
+          <span className="text-foreground/90 font-medium">
+            {job.pendingDecision.action === "wait"
+              ? "Waiting"
+              : job.pendingDecision.action === "release"
+                ? "Would release"
+                : "Would refund"}
+          </span>
+          <span className="text-muted-foreground truncate">
+            {job.pendingDecision.reason}
+          </span>
+        </div>
+
+        {/* Actions. Neutral by default; only the primary one carries weight. */}
+        <div className="mt-7 flex flex-wrap items-center gap-1">
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             disabled={!isOpen}
             onClick={() => run(() => api.work(job.jobId, "honest"))}
-            className="border-success/30 text-success hover:bg-success-muted hover:text-success"
           >
             Honest agent
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             disabled={!isOpen}
             onClick={() => run(() => api.work(job.jobId, "fail"))}
-            className="border-danger/30 text-danger hover:bg-danger-muted hover:text-danger"
             title="Delivers half the required amount — the transfer still succeeds on-chain"
           >
             Failing agent
@@ -204,7 +190,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
 
           {cfg && (
             <a
-              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs transition-colors"
+              className="text-muted-foreground hover:text-foreground mr-2 inline-flex items-center gap-1 text-xs transition-colors"
               href={`${cfg.explorer}/address/${cfg.escrowAddress}`}
               target="_blank"
               rel="noreferrer"
@@ -214,11 +200,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
             </a>
           )}
 
-          <Button
-            size="sm"
-            disabled={!canSettle}
-            onClick={() => run(() => api.resolve(job.jobId, false))}
-          >
+          <Button size="sm" disabled={!canSettle} onClick={() => run(() => api.resolve(job.jobId, false))}>
             Settle
           </Button>
         </div>

@@ -106,12 +106,14 @@ export default function App() {
         </div>
       )}
 
-      <main className="mx-auto max-w-[1440px] px-6 py-8">
+      <main className="mx-auto max-w-[1400px] px-8 py-12">
         {/* Page header */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="display text-2xl font-semibold">Dashboard</h1>
-            <p className="text-muted-foreground mt-1.5 text-sm">
+            <h1 className="display text-[1.75rem] leading-none font-semibold">
+              Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-lg text-sm leading-relaxed">
               Escrowed jobs, settled against Base chain state — not against
               transaction receipts.
             </p>
@@ -125,12 +127,12 @@ export default function App() {
           )}
         </div>
 
-        <div className="mt-7">
+        <div className="mt-10">
           <MetricsRow jobs={jobs} escrowUsdc={balances?.escrowUsdc ?? null} />
         </div>
 
         {composing && (
-          <div className="mt-6">
+          <div className="mt-8">
             <PostJobForm
               defaultSubject={cfg?.keeperHubWallet ?? ""}
               onPosted={() => void refreshJobs()}
@@ -140,9 +142,9 @@ export default function App() {
         )}
 
         {/* Asymmetric split: jobs carry more weight than the log. */}
-        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div className="mt-14 grid items-start gap-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           <section>
-            <div className="mb-4 flex items-baseline justify-between">
+            <div className="mb-5 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold">Jobs</h2>
               {jobs.length > 0 && (
                 <span className="text-muted-foreground tnum text-xs">
@@ -152,26 +154,24 @@ export default function App() {
             </div>
 
             {jobs.length === 0 ? (
-              <Card className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-white/[0.06] ring-1 ring-white/10">
-                  <Inbox className="text-muted-foreground size-5" />
-                </span>
-                <h3 className="text-sm font-medium">No jobs yet</h3>
-                <p className="text-muted-foreground mt-1.5 max-w-xs text-xs leading-relaxed">
+              <Card className="flex flex-col items-center justify-center px-8 py-20 text-center">
+                <Inbox className="text-muted-foreground/40 size-7" />
+                <h3 className="mt-5 text-sm font-medium">No jobs yet</h3>
+                <p className="text-muted-foreground mt-2.5 max-w-xs text-xs leading-relaxed">
                   Post one to lock USDC in escrow against a balance-delta
                   promise, then run an agent against it.
                 </p>
                 {!composing && (
                   <button
                     onClick={() => setComposing(true)}
-                    className="text-primary mt-4 text-xs font-medium hover:underline"
+                    className="text-primary mt-6 text-xs font-medium hover:underline"
                   >
                     Create the first job →
                   </button>
                 )}
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {jobs.map((j) => (
                   <JobCard
                     key={j.jobId}

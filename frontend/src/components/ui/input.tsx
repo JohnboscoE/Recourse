@@ -7,9 +7,11 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "border-input bg-background text-foreground placeholder:text-muted-foreground/60",
-        "focus-visible:border-ring focus-visible:ring-ring/40 h-9 w-full rounded-md border px-3",
-        "font-mono text-sm transition-colors outline-none focus-visible:ring-2",
+        // Recessed rather than outlined: an inset well reads as a place to
+        // type, where a bright 1px box just adds another edge to the page.
+        "well text-foreground placeholder:text-muted-foreground/50",
+        "focus-visible:ring-ring/50 h-10 w-full rounded-lg border border-white/[0.04] px-3.5",
+        "font-mono text-sm transition-shadow outline-none focus-visible:ring-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

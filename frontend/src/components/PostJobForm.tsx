@@ -40,7 +40,7 @@ export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+      <div className="flex items-start justify-between gap-4 px-7 pt-7">
         <div>
           <h2 className="text-sm font-semibold">New job</h2>
           <p className="text-muted-foreground mt-1 text-xs">
@@ -56,8 +56,8 @@ export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
         </button>
       </div>
 
-      <form onSubmit={submit} className="p-5">
-        <div className="space-y-4">
+      <form onSubmit={submit} className="p-7">
+        <div className="space-y-5">
           <div>
             <Label htmlFor="subject">Subject — whose balance must rise</Label>
             <Input
@@ -108,7 +108,7 @@ export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
           <p className="text-danger mt-4 font-mono text-xs break-all">{err}</p>
         )}
 
-        <div className="mt-5 flex items-center justify-between gap-3">
+        <div className="mt-7 flex items-center justify-between gap-4">
           <p className="text-muted-foreground/70 text-xs">
             Two KeeperHub executions — this can take a minute.
           </p>

@@ -60,7 +60,10 @@
   --info: #38bdf8;
   --info-muted: color-mix(in oklab, #38bdf8 15%, transparent);
 
-  --radius: 0.5rem;
+  --radius: 0.625rem;
+  /* Panels get a noticeably larger radius than controls. Matching them is
+     what makes a big card read like a scaled-up button. */
+  --radius-panel: 1.125rem;
 }
 
 @theme inline {
@@ -114,15 +117,33 @@
  * shadow to lift it off the page.
  */
 @utility glass {
-  background: color-mix(in oklab, var(--card) 62%, transparent);
+  background: color-mix(in oklab, var(--card) 55%, transparent);
   /* Do NOT hand-write -webkit-backdrop-filter here. Lightning CSS prefixes
      from the browser targets, and a manual prefix makes it emit ONLY the
      prefixed form — which silently kills the blur in Chrome and Firefox. */
-  backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid color-mix(in oklab, white 9%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  /*
+   * One hairline, kept very low contrast. A bright 1px outline on every panel
+   * is the single loudest "cheap" signal in dark UI — depth should come from
+   * the shadow stack below, not from drawing an edge around everything.
+   */
+  border: 1px solid color-mix(in oklab, white 5.5%, transparent);
+  /*
+   * Layered shadow: a tight contact shadow, a mid lift, and a wide ambient
+   * pool. Real objects cast all three. A single mid-range shadow is what makes
+   * a card look pasted onto the page rather than resting above it.
+   */
   box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 7%, transparent),
-    0 8px 28px -14px rgb(0 0 0 / 0.7);
+    inset 0 1px 0 0 color-mix(in oklab, white 4.5%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.28),
+    0 10px 24px -12px rgb(0 0 0 / 0.45),
+    0 32px 64px -32px rgb(0 0 0 / 0.55);
+}
+
+/* Inset well — for regions *inside* a card. Recessed, never another outline. */
+@utility well {
+  background: color-mix(in oklab, black 22%, transparent);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
 }
 
 /* Lighter weight, for bars that sit over content rather than holding it. */

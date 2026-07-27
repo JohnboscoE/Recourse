@@ -19,7 +19,7 @@ function Card({
       data-slot="card"
       data-variant={variant}
       className={cn(
-        "rounded-xl",
+        "rounded-[var(--radius-panel)]",
         variant === "glass" ? "glass" : "bg-card border-border border",
         className,
       )}

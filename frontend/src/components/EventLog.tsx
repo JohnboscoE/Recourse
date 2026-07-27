@@ -28,7 +28,7 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
 
   return (
     <Card className="flex flex-col overflow-hidden">
-      <div className="h-[calc(100vh-16rem)] min-h-[24rem] space-y-1.5 overflow-y-auto p-4 font-mono text-xs">
+      <div className="h-[calc(100vh-19rem)] min-h-[26rem] space-y-2 overflow-y-auto p-6 font-mono text-xs">
         {events.length === 0 && (
           <p className="text-muted-foreground p-2">
             Nothing yet. Post a job, or run an agent against an open one.

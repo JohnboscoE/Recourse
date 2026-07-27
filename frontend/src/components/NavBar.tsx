@@ -16,7 +16,7 @@ function Wordmark() {
     <div className="flex items-center gap-2.5">
       <span className="relative flex size-8 items-center justify-center">
         {/* Mark: a shield for escrow, emerald for the verified state. */}
-        <span className="from-primary/30 absolute inset-0 rounded-lg bg-gradient-to-br to-transparent ring-1 ring-white/10" />
+        <span className="from-primary/25 absolute inset-0 rounded-[0.6rem] bg-gradient-to-br to-transparent" />
         <ShieldCheck className="text-primary relative size-4" />
       </span>
       <div className="leading-none">
@@ -58,7 +58,7 @@ export function NavBar({ cfg, balances, view, onNavigate, connected }: Props) {
 
   return (
     <header className="glass-bar sticky top-0 z-50">
-      <div className="flex items-center gap-4 px-5 py-3">
+      <div className="mx-auto flex max-w-[1400px] items-center gap-5 px-8 py-4">
         <button
           onClick={() => onNavigate("board")}
           className="shrink-0 cursor-pointer"

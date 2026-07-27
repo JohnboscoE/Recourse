@@ -13,11 +13,11 @@ const TONE_TEXT: Record<Tone, string> = {
   info: "text-info",
 };
 
-const TONE_CHIP: Record<Tone, string> = {
-  neutral: "bg-white/[0.06] text-muted-foreground ring-white/10",
-  success: "bg-success-muted text-success ring-success/20",
-  danger: "bg-danger-muted text-danger ring-danger/20",
-  info: "bg-info-muted text-info ring-info/20",
+const TONE_ICON: Record<Tone, string> = {
+  neutral: "text-muted-foreground/60",
+  success: "text-success/70",
+  danger: "text-danger/70",
+  info: "text-info/70",
 };
 
 function Metric({
@@ -36,34 +36,18 @@ function Metric({
   tone?: Tone;
 }) {
   return (
-    <Card className="relative overflow-hidden p-5">
-      {/* Tone wash, so the card carries meaning before you read it. */}
-      {tone !== "neutral" && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{
-            background: `radial-gradient(20rem 12rem at 100% 0%, currentColor, transparent 70%)`,
-          }}
-        />
-      )}
-
-      <div className="relative flex items-start justify-between gap-3">
+    <Card className="p-6">
+      {/* Bare icon, no chip. A tinted rounded square behind every icon is
+          decoration pretending to be structure. */}
+      <div className="flex items-center justify-between gap-3">
         <span className="label-xs">{label}</span>
-        <span
-          className={cn(
-            "flex size-7 items-center justify-center rounded-lg ring-1",
-            TONE_CHIP[tone],
-          )}
-        >
-          <Icon className="size-3.5" />
-        </span>
+        <Icon className={cn("size-4", TONE_ICON[tone])} />
       </div>
 
-      <div className="relative mt-4 flex items-baseline gap-1.5">
+      <div className="mt-5 flex items-baseline gap-1.5">
         <span
           className={cn(
-            "display tnum text-3xl font-semibold",
+            "display tnum text-[2rem] leading-none font-semibold",
             TONE_TEXT[tone],
           )}
         >
@@ -74,7 +58,9 @@ function Metric({
         )}
       </div>
 
-      <p className="text-muted-foreground relative mt-1.5 text-xs">{caption}</p>
+      <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+        {caption}
+      </p>
     </Card>
   );
 }
@@ -101,12 +87,12 @@ export function MetricsRow({
     .toFixed(2);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
       <Metric
         label="Total jobs"
         value={String(jobs.length)}
         caption={
-          live.length > 0 ? `${live.length} still in flight` : "none in flight"
+          live.length > 0 ? `${live.length} still in flight` : "None in flight"
         }
         icon={Layers}
       />
@@ -120,7 +106,7 @@ export function MetricsRow({
       <Metric
         label="Refunded"
         value={String(refunded.length)}
-        caption="promise unmet, poster made whole"
+        caption="Promise unmet, poster made whole"
         icon={RotateCcw}
         tone="danger"
       />
@@ -130,7 +116,7 @@ export function MetricsRow({
         unit="USDC"
         caption={
           keptRate === null
-            ? "no jobs settled yet"
+            ? "No jobs settled yet"
             : `${keptRate}% of settled jobs kept the promise`
         }
         icon={Wallet}
