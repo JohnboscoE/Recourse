@@ -48,13 +48,14 @@ async function post() {
   const subject = flag("subject");
   if (!subject) throw new Error("--subject required");
   // The agent pays FROM the execution wallet, so a job whose subject IS that
-  // wallet is a self-transfer: the balance nets to zero and the job can only
-  // ever refund. Refuse before locking funds against an unsatisfiable promise.
+  // wallet is a self-transfer that nets to zero. Warn rather than refuse — an
+  // unrelated inflow can still satisfy it, and staging a refund is valid.
   if (subject.toLowerCase() === KH_WALLET.toLowerCase()) {
-    throw new Error(
-      `--subject cannot be the execution wallet (${KH_WALLET}). The agent pays ` +
-        `from that address, so the delta would always be 0 and the job could ` +
-        `only refund. Use a different beneficiary address.`,
+    console.warn(
+      `WARNING: --subject is the execution wallet. The agent pays from that ` +
+        `address, so its own transfer nets to zero and cannot satisfy this job. ` +
+        `Only an unrelated inflow could. Expect a refund.
+`,
     );
   }
   const minIncreaseBase = usdc(flag("min", "0.1")!);

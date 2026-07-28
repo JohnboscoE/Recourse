@@ -33,7 +33,10 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
     looksLikeAddress &&
     agentWallet &&
     subject.trim().toLowerCase() === agentWallet.toLowerCase();
-  const canSubmit = looksLikeAddress && !isAgentWallet && !busy;
+  // The agent-wallet case is advisory, not blocking: its own transfer can't
+  // satisfy the job, but an unrelated inflow still can, and deliberately
+  // staging a refund is a reasonable thing to do.
+  const canSubmit = looksLikeAddress && !busy;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,16 +84,17 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
               onChange={(e) => setSubject(e.target.value)}
               placeholder="0x… beneficiary address"
               spellCheck={false}
-              aria-invalid={subject.length > 0 && (!looksLikeAddress || !!isAgentWallet)}
+              aria-invalid={subject.length > 0 && !looksLikeAddress}
             />
 
             {isAgentWallet ? (
-              <p className="text-danger mt-2 flex gap-1.5 text-xs leading-relaxed">
+              <p className="text-warning mt-2 flex gap-1.5 text-xs leading-relaxed">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                 <span>
-                  That&rsquo;s the wallet the agent pays <em>from</em>. Sending to
-                  it nets to zero, so the balance would never rise and the job
-                  could only ever refund. Use a different address.
+                  This is the agent&rsquo;s own wallet. Its transfer to itself
+                  nets to zero, so the agent can&rsquo;t satisfy this job — only
+                  an unrelated deposit could. You can still post it; expect a
+                  refund.
                 </span>
               </p>
             ) : (

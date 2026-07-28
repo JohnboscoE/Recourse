@@ -61,20 +61,23 @@ app.post<{
   }
 
   /**
-   * The subject may not be the wallet the agent pays *from*.
+   * Warn, don't block, when the subject is the wallet the agent pays *from*.
    *
-   * A transfer from that wallet to itself nets to zero, so the balance never
-   * rises, the delta stays at 0, and the job can only ever refund — no matter
-   * what the agent does. It looks like a verification failure and is actually
-   * an unsatisfiable job. Reject it at creation rather than letting someone
-   * lock funds against a promise that cannot be kept.
+   * The agent's own work cannot satisfy such a job: a transfer from that wallet
+   * to itself nets to zero, so the delta stays at 0. But the predicate is not
+   * strictly unsatisfiable — any unrelated inflow (a refund from another job, an
+   * external deposit) still counts, and staging a guaranteed refund is a
+   * legitimate thing to want. So this is the caller's call to make; our job is
+   * to make sure they make it knowingly.
    */
   if (subject.toLowerCase() === config.keeperHubWallet.toLowerCase()) {
-    return reply.code(400).send({
-      error:
-        "subject cannot be the KeeperHub execution wallet — the agent pays from " +
-        "that address, so a transfer to it nets to zero and the job could only " +
-        "ever refund. Use a different beneficiary address.",
+    log({
+      level: "warn",
+      phase: "post",
+      message:
+        "subject is the KeeperHub execution wallet — the agent pays from that " +
+        "address, so its own transfer nets to zero and cannot satisfy this job. " +
+        "Only an unrelated inflow could. Expect a refund.",
     });
   }
   startPostJob({ subject, minIncrease, payment, deadlineMins });
