@@ -3,4 +3,5 @@ packages:
   - "backend"
   - "agents"
   - "frontend"
+  - "worker"
 # contracts/ is a Foundry project, not a pnpm package — intentionally excluded.

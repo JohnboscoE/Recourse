@@ -10,56 +10,14 @@ import { executeEscrowCall, getExecution } from "./keeperhub.js";
  * whole product.
  */
 
-export type ResolverAction = "release" | "refund" | "wait";
+// The decision logic lives in @recourse/shared so the Worker runtime and
+// this one cannot drift. Re-exported here to keep existing imports (and
+// resolver.test.ts) pointing at a stable path.
+import { decide } from "@recourse/shared";
+import type { ResolverAction, Decision } from "@recourse/shared";
 
-export interface Decision {
-  action: ResolverAction;
-  reason: string;
-}
-
-export interface DecisionInput {
-  status: JobStatus;
-  minIncrease: bigint;
-  deadline: bigint; // unix seconds
-  observedIncrease: bigint; // subject's current USDC balance minus baseline
-  nowSec: bigint;
-}
-
-/** Pure decision logic — deterministic, no I/O, fully unit-testable. */
-export function decide(input: DecisionInput): Decision {
-  const { status, minIncrease, deadline, observedIncrease, nowSec } = input;
-
-  if (status === JobStatus.Released || status === JobStatus.Refunded) {
-    return { action: "wait", reason: "already settled" };
-  }
-
-  const deltaMet = observedIncrease >= minIncrease;
-  const withinDeadline = nowSec <= deadline;
-
-  // Release only if an agent has claimed, the delta is met, and we're in time.
-  if (status === JobStatus.Claimed && deltaMet && withinDeadline) {
-    return {
-      action: "release",
-      reason: `delta met (${observedIncrease} >= ${minIncrease}) before deadline`,
-    };
-  }
-
-  // Past the deadline with no successful release: poster can reclaim. Covers
-  // both never-claimed jobs and claimed-but-unfulfilled (or fulfilled too late).
-  if (!withinDeadline) {
-    return {
-      action: "refund",
-      reason: deltaMet
-        ? "delta met but deadline passed before release"
-        : `delta not met by deadline (${observedIncrease} < ${minIncrease})`,
-    };
-  }
-
-  return {
-    action: "wait",
-    reason: deltaMet ? "delta met, awaiting claim" : "delta not yet met, within deadline",
-  };
-}
+export { decide };
+export type { ResolverAction, Decision, DecisionInput } from "@recourse/shared";
 
 export interface ResolveReport {
   jobId: string;

@@ -1,0 +1,33 @@
+name = "recourse-api"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+# viem and the shared package pull in a few Node built-ins (crypto, buffer).
+compatibility_flags = ["nodejs_compat"]
+
+# Automatic settlement. Workers have no long-lived process, so the Node
+# backend's 30s setInterval becomes a cron trigger. One minute is the finest
+# granularity Cloudflare offers; it changes how fast a settlement lands, never
+# whether it happens.
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+ESCROW_ADDRESS = "0xE21A7446a89b3A8C9A455dC5e1c2A61D21E25982"
+KH_BASE_URL = "https://app.keeperhub.com"
+KH_MCP_PATH = "/mcp"
+KH_WALLET_ADDRESS = "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA"
+# Set to the deployed frontend origin before going live.
+# CORS_ORIGINS = "https://recourse.vercel.app"
+
+# A dedicated RPC matters more here than locally — the public Base endpoint
+# throttles hard and the Worker has no read cache in front of it.
+# BASE_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/YOUR_KEY"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "recourse"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+
+# Secret, never in this file:
+#   wrangler secret put KH_API_KEY

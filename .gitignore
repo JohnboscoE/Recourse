@@ -1,5 +1,7 @@
 # Secrets — never commit these
 .env
+.dev.vars
+worker/.dev.vars
 .env.local
 *.key
 
@@ -9,6 +11,10 @@ node_modules/
 # Build output
 dist/
 build/
+
+# Cloudflare Workers local state + build artifacts
+.wrangler/
+worker/.wrangler/
 
 # Foundry (contracts/)
 contracts/out/

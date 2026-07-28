@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Recourse">
+  <title>Recourse</title>
+  <!--
+    Mark: a shield (escrow — funds held) with a delta cut out of it (Δ — the
+    measured balance change that decides settlement). The delta is a true
+    cut-out via fill-rule, so the mark reads correctly on any background and
+    stays legible down to 16px.
+  -->
+  <defs>
+    <linearGradient id="r-grad" x1="32" y1="3" x2="32" y2="61" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+
+  <path
+    fill="url(#r-grad)"
+    fill-rule="evenodd"
+    d="M32 3 L58 13.4 V32.2 C58 47 47.4 57.6 32 61 C16.6 57.6 6 47 6 32.2 V13.4 Z
+       M32 20.5 L44.5 43.5 H19.5 Z"/>
+</svg>
