@@ -329,6 +329,26 @@ body,
   height: 100%;
 }
 
+/*
+ * The page itself must never scroll sideways on a phone.
+ *
+ * `clip` rather than `hidden`: hidden would turn the body into a scroll
+ * container and break `position: sticky` on the nav. This is a backstop, not
+ * the fix — wide content (the pipeline, the log) is made to scroll or wrap
+ * inside its own container, so nothing should reach this rule.
+ */
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* Long unbroken tokens — tx hashes, execution ids — must not widen the page. */
+code,
+.font-mono {
+  overflow-wrap: anywhere;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

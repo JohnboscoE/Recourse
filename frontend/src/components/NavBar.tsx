@@ -67,7 +67,7 @@ export function NavBar({
 
   return (
     <header className="glass-bar sticky top-0 z-50">
-      <div className="mx-auto flex max-w-[1400px] items-center gap-5 px-8 py-4">
+      <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6 sm:py-4 lg:px-8">
         <button
           onClick={() => onNavigate("board")}
           className="shrink-0 cursor-pointer"

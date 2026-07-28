@@ -59,6 +59,24 @@ app.post<{
   if (!minIncrease || !payment) {
     return reply.code(400).send({ error: "minIncrease and payment are required" });
   }
+
+  /**
+   * The subject may not be the wallet the agent pays *from*.
+   *
+   * A transfer from that wallet to itself nets to zero, so the balance never
+   * rises, the delta stays at 0, and the job can only ever refund — no matter
+   * what the agent does. It looks like a verification failure and is actually
+   * an unsatisfiable job. Reject it at creation rather than letting someone
+   * lock funds against a promise that cannot be kept.
+   */
+  if (subject.toLowerCase() === config.keeperHubWallet.toLowerCase()) {
+    return reply.code(400).send({
+      error:
+        "subject cannot be the KeeperHub execution wallet — the agent pays from " +
+        "that address, so a transfer to it nets to zero and the job could only " +
+        "ever refund. Use a different beneficiary address.",
+    });
+  }
   startPostJob({ subject, minIncrease, payment, deadlineMins });
   return { started: true, sinceSeq: latestSeq() };
 });

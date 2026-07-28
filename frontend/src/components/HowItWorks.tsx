@@ -134,7 +134,7 @@ export function HowItWorks({ className }: { className?: string }) {
       </div>
 
       {/* Pipeline. */}
-      <div className="flex items-center">
+      <div className="-mx-1 flex min-w-[20rem] items-center overflow-x-auto px-1 pb-1">
         {STAGES.map((stage, i) => {
           const Icon = stage.icon;
           const done = i < step;
@@ -152,7 +152,7 @@ export function HowItWorks({ className }: { className?: string }) {
               >
                 <span
                   className={cn(
-                    "flex size-11 items-center justify-center rounded-full border transition-all duration-500",
+                    "flex size-9 items-center justify-center rounded-full border transition-all duration-500 sm:size-11",
                     done && "border-success/40 bg-success-muted text-success",
                     active &&
                       !isOutcome &&
@@ -165,11 +165,11 @@ export function HowItWorks({ className }: { className?: string }) {
                   )}
                 >
                   {isOutcome ? (
-                    <OutcomeIcon className="size-5" />
+                    <OutcomeIcon className="size-4 sm:size-5" />
                   ) : done ? (
-                    <Check className="size-5" />
+                    <Check className="size-4 sm:size-5" />
                   ) : (
-                    <Icon className="size-5" />
+                    <Icon className="size-4 sm:size-5" />
                   )}
                 </span>
                 <span
@@ -184,7 +184,7 @@ export function HowItWorks({ className }: { className?: string }) {
 
               {/* Connector */}
               {i < STAGES.length - 1 && (
-                <div className="bg-border mx-2 h-px flex-1 self-start mt-[22px] overflow-hidden">
+                <div className="bg-border mx-1.5 mt-[18px] h-px flex-1 self-start overflow-hidden sm:mx-2 sm:mt-[22px]">
                   <div
                     className={cn(
                       "h-full transition-all ease-linear",

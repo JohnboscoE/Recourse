@@ -92,7 +92,7 @@ export function Dialog({
           size === "lg" ? "max-w-2xl" : "max-w-lg",
         )}
       >
-        <div className="flex items-start justify-between gap-6 px-7 pt-7">
+        <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:gap-6 sm:px-7 sm:pt-7">
           <div>
             <h2 className="display text-lg font-semibold">{title}</h2>
             {description && (
@@ -112,10 +112,10 @@ export function Dialog({
           )}
         </div>
 
-        {children && <div className="px-7 py-6">{children}</div>}
+        {children && <div className="px-5 py-5 sm:px-7 sm:py-6">{children}</div>}
 
         {footer && (
-          <div className="flex items-center justify-between gap-4 px-7 pb-7">
+          <div className="flex items-center justify-between gap-4 px-5 pb-5 sm:px-7 sm:pb-7">
             {footer}
           </div>
         )}

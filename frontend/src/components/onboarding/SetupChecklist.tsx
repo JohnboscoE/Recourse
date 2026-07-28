@@ -80,7 +80,7 @@ export function SetupChecklist({
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-7 pt-7">
+      <div className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-7 sm:pt-7">
         <div>
           <h2 className="text-sm font-semibold">
             {allGood ? "Ready to go" : "Finish setting up"}
@@ -101,7 +101,7 @@ export function SetupChecklist({
         </button>
       </div>
 
-      <div className="px-7 py-6">
+      <div className="px-5 py-5 sm:px-7 sm:py-6">
         <ul className="space-y-3.5">
           {checks.map((c) => (
             <li key={c.label} className="flex gap-3">

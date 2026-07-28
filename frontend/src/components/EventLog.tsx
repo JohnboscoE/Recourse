@@ -28,7 +28,7 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
 
   return (
     <Card className="flex flex-col overflow-hidden">
-      <div className="h-[calc(100vh-19rem)] min-h-[26rem] space-y-2 overflow-y-auto p-6 font-mono text-xs">
+      <div className="h-[60vh] min-h-[20rem] space-y-2 overflow-y-auto p-4 font-mono text-xs break-words sm:h-[calc(100vh-19rem)] sm:min-h-[26rem] sm:p-6">
         {events.length === 0 && (
           <p className="text-muted-foreground p-2">
             Nothing yet. Post a job, or run an agent against an open one.
@@ -36,7 +36,7 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
         )}
 
         {events.map((e) => (
-          <div key={e.seq} className="leading-relaxed">
+          <div key={e.seq} className="leading-relaxed break-words">
             <span className="text-muted-foreground/50">{e.ts.slice(11, 19)} </span>
             <span className={LEVEL_STYLE[e.level]}>{LEVEL_MARK[e.level]} </span>
             {e.jobId && <span className="text-info">job#{e.jobId} </span>}

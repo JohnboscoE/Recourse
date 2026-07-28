@@ -120,11 +120,11 @@ export default function App() {
         </div>
       )}
 
-      <main className="mx-auto max-w-[1400px] px-8 py-12">
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         {/* Page header */}
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="display text-[1.75rem] leading-none font-semibold">
+            <h1 className="display text-2xl leading-none font-semibold sm:text-[1.75rem]">
               Dashboard
             </h1>
             <p className="text-muted-foreground mt-3 max-w-lg text-sm leading-relaxed">
@@ -160,7 +160,7 @@ export default function App() {
         {composing && (
           <div className="mt-8">
             <PostJobForm
-              defaultSubject={cfg?.keeperHubWallet ?? ""}
+              agentWallet={cfg?.keeperHubWallet ?? ""}
               onPosted={() => void refreshJobs()}
               onClose={() => setComposing(false)}
             />
@@ -168,7 +168,7 @@ export default function App() {
         )}
 
         {/* Asymmetric split: jobs carry more weight than the log. */}
-        <div className="mt-14 grid items-start gap-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+        <div className="mt-10 grid items-start gap-6 sm:mt-14 sm:gap-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           <section>
             <div className="mb-5 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold">Jobs</h2>
@@ -180,7 +180,7 @@ export default function App() {
             </div>
 
             {jobs.length === 0 ? (
-              <Card className="flex flex-col items-center justify-center px-8 py-20 text-center">
+              <Card className="flex flex-col items-center justify-center px-6 py-16 text-center sm:px-8 sm:py-20">
                 <Inbox className="text-muted-foreground/40 size-7" />
                 <h3 className="mt-5 text-sm font-medium">No jobs yet</h3>
                 <p className="text-muted-foreground mt-2.5 max-w-xs text-xs leading-relaxed">

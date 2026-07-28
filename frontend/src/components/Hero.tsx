@@ -12,7 +12,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-24 w-full">
+    <section className="mt-16 w-full sm:mt-24">
       <p className="text-muted-foreground mb-6 text-center text-xs tracking-[0.2em] uppercase">
         {eyebrow}
       </p>
@@ -26,7 +26,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
     <div className="relative w-full">
       {/* Backdrop is mounted by App via <AmbientBackground intensity="full" />,
           so both views share one definition instead of drifting apart. */}
-      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 pt-20 pb-24 text-center">
+      <div className="mx-auto flex max-w-5xl flex-col items-center px-4 pt-14 pb-20 text-center sm:px-6 sm:pt-20 sm:pb-24">
         <div className="border-success/30 bg-success-muted text-success mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
           <ShieldCheck className="size-3.5" />
           Live on Base · executed via KeeperHub

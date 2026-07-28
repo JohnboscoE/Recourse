@@ -83,7 +83,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
         settled && "opacity-70 hover:opacity-100",
       )}
     >
-      <div className="p-7">
+      <div className="p-5 sm:p-7">
         {/* Identity */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-baseline gap-3">
@@ -116,7 +116,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
             <div className="mt-2.5 flex items-baseline gap-2">
               <span
                 className={cn(
-                  "display tnum text-[2.25rem] leading-none font-semibold",
+                  "display tnum text-3xl leading-none font-semibold sm:text-[2.25rem]",
                   job.deltaMet ? "text-success" : "text-warning",
                 )}
               >
@@ -148,7 +148,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
         </div>
 
         {/* Facts. Spacing carries the structure; no dividers, no boxes. */}
-        <div className="mt-7 grid grid-cols-3 gap-6">
+        <div className="mt-7 grid grid-cols-2 gap-5 sm:grid-cols-3 sm:gap-6">
           <Fact label="Subject" value={short(job.subject)} hint={GLOSSARY.subject} />
           <Fact label="Agent" value={short(job.agent)} />
           <Fact

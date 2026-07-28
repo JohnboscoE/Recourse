@@ -28,10 +28,10 @@ function Node({
   tone?: "neutral" | "success" | "danger";
 }) {
   return (
-    <div className="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
+    <div className="flex w-16 shrink-0 flex-col items-center gap-2 text-center sm:w-24">
       <span
         className={cn(
-          "flex size-11 items-center justify-center rounded-xl",
+          "flex size-10 items-center justify-center rounded-xl sm:size-11",
           tone === "success" && "bg-success-muted text-success",
           tone === "danger" && "bg-danger-muted text-danger",
           tone === "neutral" && "bg-white/[0.06] text-muted-foreground",
@@ -112,7 +112,7 @@ export function SceneWrongAmount() {
             className="absolute top-1/2 left-0 -translate-y-1/2"
             style={{
               // @ts-expect-error -- CSS custom property
-              "--travel": "6.5rem",
+              "--travel": "4.5rem",
               animation: `packet-shrink ${LOOP} ease-in-out infinite`,
             }}
           >
@@ -122,8 +122,8 @@ export function SceneWrongAmount() {
           </div>
         </Track>
 
-        <div className="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
-          <span className="bg-white/[0.06] text-muted-foreground flex size-11 items-center justify-center rounded-xl">
+        <div className="flex w-16 shrink-0 flex-col items-center gap-2 text-center sm:w-24">
+          <span className="bg-white/[0.06] text-muted-foreground flex size-10 items-center justify-center rounded-xl sm:size-11">
             <Server className="size-5" />
           </span>
           <div>
@@ -165,7 +165,7 @@ export function ScenePaidNothing() {
             className="absolute top-1/2 left-0 -translate-y-1/2"
             style={{
               // @ts-expect-error -- CSS custom property
-              "--travel": "6.5rem",
+              "--travel": "4.5rem",
               animation: `packet-shrink ${LOOP} ease-in-out infinite`,
             }}
           >
@@ -178,7 +178,7 @@ export function ScenePaidNothing() {
             className="absolute top-1/2 left-0 -translate-y-1/2"
             style={{
               // @ts-expect-error -- CSS custom property
-              "--travel": "6.5rem",
+              "--travel": "4.5rem",
               animation: `packet-return ${LOOP} ease-in-out infinite`,
             }}
           >
@@ -188,8 +188,8 @@ export function ScenePaidNothing() {
           </div>
         </Track>
 
-        <div className="flex w-24 shrink-0 flex-col items-center gap-2 text-center">
-          <span className="bg-white/[0.06] text-muted-foreground flex size-11 items-center justify-center rounded-xl">
+        <div className="flex w-16 shrink-0 flex-col items-center gap-2 text-center sm:w-24">
+          <span className="bg-white/[0.06] text-muted-foreground flex size-10 items-center justify-center rounded-xl sm:size-11">
             <Server className="size-5" />
           </span>
           <div>

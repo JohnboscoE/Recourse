@@ -34,6 +34,10 @@ function flag(name: string, fallback?: string): string | undefined {
 function usdc(human: string): bigint {
   return parseUnits(human, USDC_DECIMALS);
 }
+/** Wallet the agent executes from — never a valid subject. */
+const KH_WALLET =
+  process.env.KH_WALLET_ADDRESS ?? "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA";
+
 function requireEnv() {
   if (!config.escrowAddress) throw new Error("ESCROW_ADDRESS not set in .env");
   if (!config.keeperHub.apiKey) throw new Error("KH_API_KEY not set in .env");
@@ -43,6 +47,16 @@ async function post() {
   requireEnv();
   const subject = flag("subject");
   if (!subject) throw new Error("--subject required");
+  // The agent pays FROM the execution wallet, so a job whose subject IS that
+  // wallet is a self-transfer: the balance nets to zero and the job can only
+  // ever refund. Refuse before locking funds against an unsatisfiable promise.
+  if (subject.toLowerCase() === KH_WALLET.toLowerCase()) {
+    throw new Error(
+      `--subject cannot be the execution wallet (${KH_WALLET}). The agent pays ` +
+        `from that address, so the delta would always be 0 and the job could ` +
+        `only refund. Use a different beneficiary address.`,
+    );
+  }
   const minIncreaseBase = usdc(flag("min", "0.1")!);
   const paymentBase = usdc(flag("pay", "0.05")!);
   const deadlineMins = Number(flag("deadline-mins", "30"));
