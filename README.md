@@ -1,0 +1,180 @@
+# Recourse
+
+**Escrowed payment for agent-executed onchain work, released only when chain
+state proves the promised outcome happened — not when the transaction merely
+succeeded.**
+
+Live on Base · every onchain action executed through [KeeperHub](https://keeperhub.com)
+
+`RecourseEscrow` → [`0xE21A7446a89b3A8C9A455dC5e1c2A61D21E25982`](https://basescan.org/address/0xE21A7446a89b3A8C9A455dC5e1c2A61D21E25982)
+
+---
+
+## The problem
+
+A blockchain transaction "succeeding" means exactly one thing: **it did not
+revert.** It does not mean the right amount moved, or that it reached the right
+address, or that the thing you paid for happened.
+
+Payment rails for agents — x402, MPP — shipped without a layer underneath them
+that checks the difference. So an agent can burn real gas, land a confirmed
+transaction, report `success: true`, deliver nothing, and get paid.
+
+We didn't have to invent an example. **While integrating x402 for this project,
+we paid $0.01 twice to listed services on a live marketplace. Both payments
+settled on-chain. Both returned `HTTP 200`. Neither returned a usable result** —
+one misconfigured, one crashed, one offline. No refund, because nothing checked
+whether the paid-for work arrived.
+
+That gap is the product.
+
+## What it does
+
+A job is a promise a machine can check:
+
+> *`0xSubject`'s USDC balance increases by at least **N** before time **T***
+
+1. **Post** — payment is locked in escrow; the subject's current balance is
+   snapshotted as the baseline
+2. **Execute** — an agent does the work via KeeperHub, then claims the job
+3. **Verify** — the resolver reads the balance *from the chain* and subtracts the
+   baseline
+4. **Settle** — delta met in time → **release** to the agent; otherwise →
+   **refund** to the poster
+
+Step 3 never asks whether the transaction succeeded. It reads the ledger.
+
+> 📖 **New to the project? Read [`docs/CONCEPT.md`](docs/CONCEPT.md)** — a
+> plain-language explanation of the problem, the design, and why the predicate
+> is deliberately narrow.
+
+## Proof it works
+
+Five jobs settled on Base, both outcomes exercised.
+
+### The case that makes the point — Job #2
+
+The failing agent delivered 0.05 USDC against a 0.10 requirement, then claimed
+anyway. Its KeeperHub execution record:
+
+```json
+{ "status": "completed", "result": { "success": true },
+  "transactionHash": "0xa4eb2254...", "gasUsed": "67350" }
+```
+
+**The transaction did not fail.** Any rail keyed on transaction status pays the
+agent here. The resolver ignored that signal, read chain state, found
+`50000 < 100000`, and [refunded the poster](https://basescan.org/tx/0x84b6acfdb8508493171a5d3b28d3c630eaadde4da55d7a996dbd1a1bf9951f6b).
+
+### Job #4 — a subtler failure
+
+The delta *was* met, but the deadline passed before anyone called `release`, so
+it [refunded](https://basescan.org/tx/0x8d10493b0e2cd74b150968c79fc534c5780fc0160dd47eee53385c34984f2958).
+Keeping the promise is necessary but not sufficient — it has to be proven inside
+the window.
+
+### Executed via the MCP server
+
+Job #5, end to end over `POST /mcp`:
+
+| Step | Transaction |
+|---|---|
+| approve | [`0xa02af3…`](https://basescan.org/tx/0xa02af3dca97e35a1a129cc7dd45314205ca09939b617d7db6da9f9721d043936) |
+| createJob | [`0xac0b88…`](https://basescan.org/tx/0xac0b88c11735d80e8d06c7d799970815a1171bf63fcb134c086c536fa5ae598c) |
+| agent transfer | [`0x576d46…`](https://basescan.org/tx/0x576d46381e1ff023b91034f3d23ee9cab6a7c0309bc2b6fb20ae477bce51f3e7) |
+| claim | [`0xce8d6d…`](https://basescan.org/tx/0xce8d6dcb7168eb1b32decf650d960cf0c564b65c35540f1f2e31b9d4c1ecdfe3) |
+| **release** | [`0xbac625…`](https://basescan.org/tx/0xbac625b28b5421e32027f3f650f9996fde9389f3ce4ae1a49d59ee679a15bce6) |
+
+Full transaction list: [`DEPLOYMENTS.md`](DEPLOYMENTS.md)
+
+## KeeperHub surfaces
+
+| Surface | How it's used |
+|---|---|
+| **Audit trail** | Every execution record is read back for observability — and deliberately *never* used as the verification signal |
+| **MCP server** | The agent discovers tools via `tools/list` rather than hardcoding endpoints, then executes through them. `idempotency_key` makes the paying transfer safe to retry |
+| **x402** | The agent pays per call for third-party listed workflows, signing through a Turnkey-backed wallet with no private key in the process |
+| **CLI** | `post`, `work`, `work-fail`, `status`, `tools`, `exec`, `market`, `buy`, `payments` |
+
+## Architecture
+
+```
+contracts/    RecourseEscrow.sol — holds funds, verifies the delta on-chain
+backend/      resolver (pure, unit-tested decision logic) + dashboard API
+agents/       honest + deliberately-failing agents, MCP client, x402 payer, CLI
+frontend/     dashboard, animated explainer, live execution log
+packages/     shared types — one definition of the predicate
+```
+
+pnpm workspaces. Solidity + Foundry. TypeScript everywhere else.
+
+**The verification lives in the contract, not just the resolver.** `release()`
+re-reads the balance and reverts if the delta is short, so even a malicious or
+broken resolver cannot cause an unearned payout.
+
+## Reliability
+
+- **Idempotency** — the paying transfer carries a deterministic key, so a retry
+  after an ambiguous failure returns the original execution instead of sending
+  the money twice
+- **Transport fallback** — MCP failures fall back to REST *only* for transport
+  errors; a tool-level error is a real failure and is never retried onto a second
+  code path
+- **Honest reporting** — the CLI reports which transport actually served a
+  request, not which was configured
+- **RPC hardening** — Multicall3 batching, TTL caching and retries; balance reads
+  degrade to last-known while verification reads never do
+
+## Quickstart
+
+```bash
+pnpm install
+cp .env.example .env      # KH_API_KEY, ESCROW_ADDRESS, BASE_RPC_URL
+pnpm dev                  # backend :3001 + frontend :5173
+```
+
+Drive it from the CLI:
+
+```bash
+# what can KeeperHub do?
+pnpm --filter @recourse/agents cli -- tools
+
+# post a job, then have an agent keep or break the promise
+pnpm --filter @recourse/agents cli -- post --subject 0x… --min 0.1 --pay 0.05
+pnpm --filter @recourse/agents cli -- work 6         # honest
+pnpm --filter @recourse/agents cli -- work-fail 6    # under-delivers
+
+# decide without submitting, then settle
+pnpm --filter @recourse/backend resolve -- 6 --dry-run
+pnpm --filter @recourse/backend resolve -- 6
+```
+
+> A dedicated `BASE_RPC_URL` is strongly recommended — the public Base endpoint
+> rate-limits hard under a polling UI.
+
+## Limitations
+
+Stated plainly, because the narrowness is the design:
+
+- **USDC balance deltas only.** Other predicate types are future work. A general
+  verifier is the fastest way to make the system unverifiable.
+- **No subjective work.** "Did this balance rise by N" is machine-checkable;
+  "is this logo good" is not, and no smart contract can settle it. That is why
+  freelancing platforms need human arbitration and this doesn't.
+- **No wallet connect yet.** The KeeperHub execution wallet currently posts jobs.
+  The contract already uses `msg.sender`, so user-funded posting needs frontend
+  work only — no redeploy.
+
+## Future work
+
+Predicates that stay objectively verifiable: NFT ownership transferred, a
+position opened, a governance vote cast, a contract reaching a given state. Same
+trustless property, wider surface.
+
+Also: listing Recourse's own verification as a priced workflow, so other agents
+can buy settlement verification over x402.
+
+---
+
+Built for the KeeperHub "Agents Onchain" hackathon.
+Onboarding friction log: [`docs/keeperhub-friction-log.md`](docs/keeperhub-friction-log.md)
