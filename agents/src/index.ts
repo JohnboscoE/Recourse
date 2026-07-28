@@ -8,3 +8,12 @@
 export { approveUsdc, createJob, claim, payToSubject, waitTerminal } from "./actions.js";
 export { readJob, readJobCount, readUsdcBalance, publicClient } from "./chain.js";
 export { config, USDC_BASE, USDC_DECIMALS } from "./config.js";
+export {
+  contractCall,
+  transfer,
+  getExecution,
+  getExecutionVia,
+  listMcpTools,
+  type ExecutionHandle,
+} from "./keeperhub.js";
+export { mcp, KeeperHubMcp, McpToolError } from "./mcp.js";

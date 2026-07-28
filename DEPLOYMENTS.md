@@ -22,6 +22,48 @@ Transactions executed by/through KeeperHub on Base:
 | Failing agent's short delivery (0.05 of 0.1) | [`0xa4eb22…d759ce`](https://basescan.org/tx/0xa4eb2254023f6725ca9f05c65d80798f4fe2392b7e7da3d3f4b0dcbb41d759ce) |
 | **Resolver refund of Job #2** | [`0x84b6ac…951f6b`](https://basescan.org/tx/0x84b6acfdb8508493171a5d3b28d3c630eaadde4da55d7a996dbd1a1bf9951f6b) |
 
+## Executed via the KeeperHub MCP server (2026-07-27)
+
+Job #5, plus cleanup of two expired jobs — every write routed through
+`POST /mcp` (`execute_contract_call` / `execute_transfer`), not REST.
+
+| Step | Tx |
+|---|---|
+| approve (job #5) | [`0xa02af3…d043936`](https://basescan.org/tx/0xa02af3dca97e35a1a129cc7dd45314205ca09939b617d7db6da9f9721d043936) |
+| createJob #5 | [`0xac0b88…fa5ae598c`](https://basescan.org/tx/0xac0b88c11735d80e8d06c7d799970815a1171bf63fcb134c086c536fa5ae598c) |
+| agent transfer 0.1 USDC | [`0x576d46…bce51f3e7`](https://basescan.org/tx/0x576d46381e1ff023b91034f3d23ee9cab6a7c0309bc2b6fb20ae477bce51f3e7) |
+| claim #5 | [`0xce8d6d…4c1ecdfe3`](https://basescan.org/tx/0xce8d6dcb7168eb1b32decf650d960cf0c564b65c35540f1f2e31b9d4c1ecdfe3) |
+| **release #5** | [`0xbac625…679a15bce6`](https://basescan.org/tx/0xbac625b28b5421e32027f3f650f9996fde9389f3ce4ae1a49d59ee679a15bce6) |
+| refund #3 (never claimed) | [`0xb5d30f…9e235c93bb`](https://basescan.org/tx/0xb5d30fca1e76eeca9a7781ca5d04e4b5a91077bbb80a697763ef919e235c93bb) |
+| refund #4 (delta met, deadline passed first) | [`0x8d1049…34984f2958`](https://basescan.org/tx/0x8d10493b0e2cd74b150968c79fc534c5780fc0160dd47eee53385c34984f2958) |
+| fund agentic wallet (x402 float) | [`0xed96ed…063ee3ff12`](https://basescan.org/tx/0xed96ed84a75a074ecd75107645d2422e8ccb2affa8572443012c77063ee3ff12) |
+
+Job #4 is worth noting: the delta *was* met, but the deadline passed before
+anyone called `release`, so it refunds. Keeping the promise is necessary but
+not sufficient — it has to be proven inside the window.
+
+## x402: the agent as payer (2026-07-27)
+
+Agentic wallet `0x6e2Dc65E242e3bdDA1d4397116CF7B25FB8BBC40` (Turnkey-backed,
+provisioned by `@keeperhub/wallet`; no private key in the process). Funded from
+the KeeperHub execution wallet, then used to pay for third-party listings.
+
+| Payment | Tx |
+|---|---|
+| 0.01 USDC → `0x21DB…11A92` | [`0x109b1d…3456c54a1`](https://basescan.org/tx/0x109b1d4437276e6670d41deae6319dfb5d9ffd48d7f22e50a08456b3456c54a1) |
+| 0.01 USDC → `0x21DB…11A92` | [`0x9416ef…4c83dbc7ee`](https://basescan.org/tx/0x9416efeb1eb9a4747439b6df5939de376a91f4a4c64c05637fd66c4c83dbc7ee) |
+
+Both payments settled. **Neither call returned a usable result** — one listing
+failed on an unresolved template reference, the other on
+`network "undefined"`, and a third (`microtip`) answers 503.
+
+That is the thesis, demonstrated with real money on somebody else's system: the
+payment rail worked perfectly, `HTTP 200` came back both times, and no work was
+delivered. There is no refund path, because nothing checked whether the paid-for
+result actually arrived. `cli payments` audits the spend — x402's `exact` scheme
+signs an EIP-3009 authorisation that a *facilitator* submits, so payments never
+appear in the payer's own transaction history, only as USDC Transfer logs.
+
 ## Demo evidence: both settlement paths verified live
 
 Both terminal outcomes have been exercised against the live escrow on Base, with

@@ -3,8 +3,22 @@ import { base } from "viem/chains";
 import { recourseEscrowAbi, type OnchainJob, JobStatus } from "@recourse/shared";
 import { config, USDC_BASE } from "./config.js";
 
-/** Read-only chain access for the agent (writes go via KeeperHub). */
-export const publicClient = createPublicClient({ chain: base, transport: http(config.chain.rpcUrl) });
+/**
+ * Read-only chain access for the agent (writes go via KeeperHub).
+ *
+ * Same hardening as the backend client: the public Base RPC rate-limits
+ * aggressively, and a bare transport made `status` fail partway through
+ * listing jobs. Batching coalesces same-tick calls into one request and the
+ * retries ride out a throttle instead of surfacing it as a crash.
+ */
+export const publicClient = createPublicClient({
+  chain: base,
+  transport: http(config.chain.rpcUrl, {
+    batch: { wait: 16 },
+    retryCount: 4,
+    retryDelay: 250,
+  }),
+});
 
 export async function readJobCount(): Promise<bigint> {
   return publicClient.readContract({

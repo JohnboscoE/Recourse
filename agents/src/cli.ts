@@ -4,6 +4,12 @@ import { config, USDC_DECIMALS } from "./config.js";
 import { readJob, readJobCount, readUsdcBalance } from "./chain.js";
 import { approveUsdc, createJob, claim, payToSubject } from "./actions.js";
 import { listMcpTools, getExecutionVia } from "./keeperhub.js";
+import {
+  callPaidWorkflow,
+  searchWorkflows,
+  listX402Payments,
+  agenticWalletAddress,
+} from "./x402.js";
 
 /**
  * Worker-agent CLI. Drives the full loop against the live escrow, with every
@@ -101,8 +107,12 @@ async function status() {
   console.log(`escrow ${config.escrowAddress} — ${count} job(s)\n`);
 
   for (let id = 1n; id <= count; id++) {
-    const job = await readJob(id);
-    const observed = (await readUsdcBalance(job.subject)) - job.baseline;
+    // Paired reads issued together so the transport can batch them.
+    const [job, subjectBalance] = await Promise.all([
+      readJob(id),
+      readJob(id).then((j) => readUsdcBalance(j.subject)),
+    ]);
+    const observed = subjectBalance - job.baseline;
     const secsLeft = job.deadline - nowSec;
     const when =
       secsLeft > 0n ? `${secsLeft}s left` : `deadline passed ${-secsLeft}s ago`;
@@ -168,6 +178,93 @@ async function exec() {
   console.log(`  completed  ${rec.completedAt ?? "(pending)"}`);
 }
 
+/** Browse workflows other agents have listed on the KeeperHub marketplace. */
+async function market() {
+  requireEnv();
+  const res = await searchWorkflows(argv[1]);
+  const items = (res.items ?? []) as any[];
+  console.log(`${items.length} listed workflow(s)
+`);
+  for (const w of items) {
+    const price = w.priceUsdcPerCall ? `$${w.priceUsdcPerCall}/call` : "free";
+    console.log(`• ${w.listedSlug}  ${price}  [${w.workflowType ?? "?"}]`);
+    console.log(`    ${(w.name ?? "").slice(0, 90)}`);
+    if (w.inputSchema) {
+      console.log(`    inputs: ${Object.keys(w.inputSchema).join(", ")}`);
+    }
+  }
+}
+
+/** Pay for and invoke a listed workflow over x402. */
+async function buy() {
+  requireEnv();
+  const slug = argv[1];
+  if (!slug) throw new Error("usage: cli buy <slug> [--input k=v ...]");
+
+  // --input key=value, repeatable.
+  const inputs: Record<string, string> = {};
+  argv.forEach((a, i) => {
+    if (a === "--input" && argv[i + 1]) {
+      const [k, ...rest] = argv[i + 1]!.split("=");
+      if (k) inputs[k] = rest.join("=");
+    }
+  });
+
+  console.log(`Calling listed workflow "${slug}"...`);
+  const out = await callPaidWorkflow(slug, inputs);
+
+  if (out.quoted) {
+    const usdc = Number(out.quoted.amount) / 1e6;
+    console.log(
+      `x402 challenge: ${out.quoted.scheme} ${usdc} USDC on ${out.quoted.network}
+` +
+        `  asset ${out.quoted.asset}
+  payTo ${out.quoted.payTo}`,
+    );
+  } else {
+    console.log("no payment required");
+  }
+
+  if (out.settlement) {
+    console.log(
+      `
+settled: success=${out.settlement.success} network=${out.settlement.network}`,
+    );
+    if (out.settlement.transaction) {
+      console.log(`  payment tx: https://basescan.org/tx/${out.settlement.transaction}`);
+    }
+  }
+
+  console.log(`
+HTTP ${out.status}${out.paid ? " (after payment)" : ""}`);
+  console.log(JSON.stringify(out.body, null, 2));
+}
+
+/** Audit every x402 payment this agent has made. */
+async function payments() {
+  const wallet = agenticWalletAddress();
+  if (!wallet) {
+    console.log("No agentic wallet provisioned (~/.keeperhub/wallet.json).");
+    return;
+  }
+  console.log(`agentic wallet ${wallet}
+`);
+
+  const found = await listX402Payments(BigInt(argv[1] ?? 4000));
+  if (found.length === 0) {
+    console.log("no x402 payments found in range");
+    return;
+  }
+  for (const p of found) {
+    console.log(`${p.amount} USDC -> ${p.to}`);
+    console.log(`  block ${p.blockNumber}`);
+    console.log(`  https://basescan.org/tx/${p.transactionHash}`);
+  }
+  const total = found.reduce((s, p) => s + Number(p.amount), 0);
+  console.log(`
+${found.length} payment(s), ${total.toFixed(2)} USDC total`);
+}
+
 async function main() {
   switch (cmd) {
     case "post":
@@ -182,8 +279,14 @@ async function main() {
       return tools();
     case "exec":
       return exec();
+    case "market":
+      return market();
+    case "buy":
+      return buy();
+    case "payments":
+      return payments();
     default:
-      console.log("Usage: cli <post|work|work-fail|status|tools|exec> [...]");
+      console.log("Usage: cli <post|work|work-fail|status|tools|exec|market|buy|payments> [...]");
       process.exit(1);
   }
 }
