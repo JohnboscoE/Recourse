@@ -39,8 +39,21 @@ export interface AppConfig {
   autoSettleMs: number;
 }
 
+/**
+ * Where the backend lives.
+ *
+ * In dev this stays "/api" and Vite's proxy forwards to :3001, so the browser
+ * sees one origin. In a production build there is no dev server and therefore
+ * no proxy — every call would 404 against the static host. So deployments set
+ * VITE_API_URL to the backend's public origin at build time.
+ *
+ * Vite inlines import.meta.env at build, so this must be configured in the
+ * hosting provider's env BEFORE the build, not at runtime.
+ */
+const API_BASE = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/+$/, "");
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });

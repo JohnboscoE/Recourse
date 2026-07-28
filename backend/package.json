@@ -17,6 +17,7 @@
     "@recourse/shared": "workspace:*",
     "dotenv": "^16.4.5",
     "fastify": "^5.0.0",
+    "tsx": "^4.19.1",
     "viem": "^2.21.0"
   },
   "devDependencies": {

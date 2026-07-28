@@ -20,7 +20,27 @@ import {
 };
 
 const app = Fastify({ logger: { level: "warn" } });
-await app.register(cors, { origin: true });
+
+/**
+ * CORS.
+ *
+ * Locally the frontend is same-origin via the Vite proxy, so this never fires.
+ * Once deployed they are different origins (Vercel → Railway) and the browser
+ * will block every call unless the API says otherwise.
+ *
+ * CORS_ORIGINS is a comma-separated allow-list. Unset means reflect whatever
+ * origin asks — convenient for local work and for a judge running this from a
+ * clone, but it is not an access control, so set the list in production.
+ */
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+await app.register(cors, {
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  methods: ["GET", "POST", "OPTIONS"],
+});
 
 app.get("/health", async () => ({ ok: true, service: "recourse-backend" }));
 

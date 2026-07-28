@@ -152,6 +152,43 @@ pnpm --filter @recourse/backend resolve -- 6
 > A dedicated `BASE_RPC_URL` is strongly recommended — the public Base endpoint
 > rate-limits hard under a polling UI.
 
+## Deploying
+
+Locally the frontend reaches the backend through Vite's dev-server proxy, so
+they share an origin. Deployed they don't, and two things have to be configured
+or every request fails.
+
+**Backend — Railway (or any Node host)**
+
+Deploy from the repo root, not `backend/` — it depends on workspace packages.
+
+| Setting | Value |
+|---|---|
+| Install | `pnpm install` |
+| Start | `pnpm --filter @recourse/backend start` |
+| Health check | `/health` |
+
+Environment: `KH_API_KEY`, `ESCROW_ADDRESS`, `BASE_RPC_URL`, and
+`CORS_ORIGINS` set to the frontend's origin. `PORT` is provided by the host.
+Leave `RESOLVER_POLL_MS` unset so automatic settlement stays on — without a
+running backend, expired jobs never refund.
+
+**Frontend — Vercel**
+
+| Setting | Value |
+|---|---|
+| Root directory | `frontend` |
+| Build | `pnpm build` |
+| Output | `dist` |
+
+Set **`VITE_API_URL`** to the backend's public origin, no trailing slash. Vite
+inlines it at build time, so it must exist *before* the build — adding it
+afterwards requires a redeploy, not just a restart. Unset, the built app calls
+`/api/...` on the static host and every request 404s.
+
+Then add the Vercel domain to the backend's `CORS_ORIGINS` and redeploy the
+backend.
+
 ## Limitations
 
 Stated plainly, because the narrowness is the design:
