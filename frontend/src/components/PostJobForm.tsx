@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Button } from "@/components/ui/liquid-glass-button";
+import { InfoTip, GLOSSARY } from "@/components/ui/info-tip";
 
 interface Props {
   defaultSubject: string;
@@ -59,7 +60,10 @@ export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
       <form onSubmit={submit} className="p-7">
         <div className="space-y-5">
           <div>
-            <Label htmlFor="subject">Subject — whose balance must rise</Label>
+            <Label htmlFor="subject" className="flex items-center">
+              Subject — whose balance must rise
+              <InfoTip term="Subject">{GLOSSARY.subject}</InfoTip>
+            </Label>
             <Input
               id="subject"
               value={subject}
@@ -71,7 +75,10 @@ export function PostJobForm({ defaultSubject, onPosted, onClose }: Props) {
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label htmlFor="min">Required</Label>
+              <Label htmlFor="min" className="flex items-center">
+                Required
+                <InfoTip term="Required increase">{GLOSSARY.predicate}</InfoTip>
+              </Label>
               <Input
                 id="min"
                 value={minIncrease}

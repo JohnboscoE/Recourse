@@ -8,6 +8,9 @@ import { Hero } from "./components/Hero.js";
 import { NavBar } from "./components/NavBar.js";
 import { MetricsRow } from "./components/MetricsRow.js";
 import { AmbientBackground } from "./components/ui/ambient-background.js";
+import { WelcomeDialog } from "./components/onboarding/WelcomeDialog.js";
+import { SetupChecklist } from "./components/onboarding/SetupChecklist.js";
+import { useOnboarding } from "./components/onboarding/useOnboarding.js";
 import { LiquidButton } from "./components/ui/liquid-glass-button.js";
 import { Card } from "./components/ui/card.js";
 
@@ -26,6 +29,7 @@ export default function App() {
   const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
   const [view, setView] = useState<View>("board");
   const [composing, setComposing] = useState(false);
+  const onboarding = useOnboarding();
   const seqRef = useRef(0);
 
   const refreshJobs = useCallback(async () => {
@@ -82,6 +86,7 @@ export default function App() {
       view={view}
       onNavigate={setView}
       connected={!err}
+      onReplayOnboarding={onboarding.replay}
     />
   );
 
@@ -99,6 +104,15 @@ export default function App() {
     <div className="h-full overflow-y-auto">
       <AmbientBackground intensity="subtle" />
       {chrome}
+
+      <WelcomeDialog
+        open={onboarding.showWelcome}
+        onClose={onboarding.completeWelcome}
+        onStartTour={() => {
+          onboarding.completeWelcome();
+          setView("board");
+        }}
+      />
 
       {err && (
         <div className="border-danger/30 bg-danger-muted text-danger border-b px-6 py-2 font-mono text-xs">
@@ -126,6 +140,18 @@ export default function App() {
             </LiquidButton>
           )}
         </div>
+
+        {onboarding.showChecklist && (
+          <div className="mt-8">
+            <SetupChecklist
+              cfg={cfg}
+              balances={balances}
+              jobs={jobs}
+              backendUp={!err}
+              onDismiss={onboarding.dismissChecklist}
+            />
+          </div>
+        )}
 
         <div className="mt-10">
           <MetricsRow jobs={jobs} escrowUsdc={balances?.escrowUsdc ?? null} />

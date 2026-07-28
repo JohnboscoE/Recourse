@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge, STATUS_TONE } from "@/components/ui/badge";
 import { Button } from "@/components/ui/liquid-glass-button";
+import { InfoTip, GLOSSARY } from "@/components/ui/info-tip";
 
 interface Props {
   job: JobView;
@@ -31,10 +32,21 @@ function countdown(deadline: number, nowSec: number) {
  * One labelled fact. No box, no divider — the label/value pair and the space
  * around it are enough structure. Boxing these was pure noise.
  */
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="min-w-0">
-      <div className="label-xs">{label}</div>
+      <div className="label-xs flex items-center">
+        {label}
+        {hint && <InfoTip term={label}>{hint}</InfoTip>}
+      </div>
       <div className="mt-2 truncate font-mono text-[13px]">{value}</div>
     </div>
   );
@@ -97,7 +109,10 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
         {/* The predicate. This is why the card exists, so it gets the scale. */}
         <div className="mt-7 flex items-end justify-between gap-6">
           <div>
-            <div className="label-xs">Balance delta</div>
+            <div className="label-xs flex items-center">
+              Balance delta
+              <InfoTip term="Balance delta">{GLOSSARY.delta}</InfoTip>
+            </div>
             <div className="mt-2.5 flex items-baseline gap-2">
               <span
                 className={cn(
@@ -134,9 +149,13 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
 
         {/* Facts. Spacing carries the structure; no dividers, no boxes. */}
         <div className="mt-7 grid grid-cols-3 gap-6">
-          <Fact label="Subject" value={short(job.subject)} />
+          <Fact label="Subject" value={short(job.subject)} hint={GLOSSARY.subject} />
           <Fact label="Agent" value={short(job.agent)} />
-          <Fact label="Execution" value={job.executionRef || "—"} />
+          <Fact
+            label="Execution"
+            value={job.executionRef || "—"}
+            hint={GLOSSARY.execution}
+          />
         </div>
 
         {/* Resolver's current verdict — a dot and a sentence, not a panel. */}

@@ -1,4 +1,4 @@
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, HelpCircle, ShieldCheck } from "lucide-react";
 import type { AppConfig } from "../api.js";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,8 @@ interface Props {
   onNavigate: (view: "board" | "landing") => void;
   /** True while the event stream is being polled successfully. */
   connected: boolean;
+  /** Re-show the first-run explainer and setup checklist. */
+  onReplayOnboarding?: () => void;
 }
 
 function Wordmark() {
@@ -50,7 +52,14 @@ function Stat({
   );
 }
 
-export function NavBar({ cfg, balances, view, onNavigate, connected }: Props) {
+export function NavBar({
+  cfg,
+  balances,
+  view,
+  onNavigate,
+  connected,
+  onReplayOnboarding,
+}: Props) {
   const tabs = [
     { id: "board" as const, label: "Dashboard" },
     { id: "landing" as const, label: "Overview" },
@@ -142,6 +151,20 @@ export function NavBar({ cfg, balances, view, onNavigate, connected }: Props) {
                 flag={balances.stale ? "stale" : undefined}
               />
             </div>
+          )}
+
+          {onReplayOnboarding && (
+            <button
+              onClick={onReplayOnboarding}
+              title="Replay the introduction and setup checklist"
+              aria-label="Help"
+              className={cn(
+                "text-muted-foreground hover:text-foreground ml-2 rounded-lg p-2",
+                "transition-colors hover:bg-white/[0.06]",
+              )}
+            >
+              <HelpCircle className="size-4" />
+            </button>
           )}
 
           {cfg && (
