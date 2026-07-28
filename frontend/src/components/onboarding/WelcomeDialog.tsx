@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ScanLine, X } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
+import {
+  SceneWrongAmount,
+  ScenePaidNothing,
+  SceneVerified,
+} from "./scenes.js";
 import { Button } from "@/components/ui/liquid-glass-button";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +21,7 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   {
     key: "problem",
+    scene: SceneWrongAmount,
     eyebrow: "The problem",
     title: "A transaction can succeed and still do the wrong thing",
     body: (
@@ -41,6 +47,7 @@ const STEPS = [
   },
   {
     key: "gap",
+    scene: ScenePaidNothing,
     eyebrow: "Why it matters now",
     title: "Agents spend the money, and nothing checks the result",
     body: (
@@ -64,6 +71,7 @@ const STEPS = [
   },
   {
     key: "solution",
+    scene: SceneVerified,
     eyebrow: "What Recourse does",
     title: "Pay on proof, not on receipts",
     body: (
@@ -107,6 +115,7 @@ export function WelcomeDialog({
 }) {
   const [step, setStep] = useState(0);
   const current = STEPS[step]!;
+  const Scene = current.scene;
   const last = step === STEPS.length - 1;
 
   return (
@@ -119,6 +128,12 @@ export function WelcomeDialog({
     >
       <div className="-mt-2">
         <div className="text-primary label-xs mb-4">{current.eyebrow}</div>
+
+        {/* Keyed so switching screens remounts the scene and its loop
+            restarts from the first beat instead of mid-animation. */}
+        <div className="mb-6">
+          <Scene key={current.key} />
+        </div>
 
         <div className="text-muted-foreground text-sm leading-relaxed">
           {current.body}
