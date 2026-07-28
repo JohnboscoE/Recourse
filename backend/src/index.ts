@@ -30,6 +30,9 @@ app.get("/config", async () => ({
   chainId: config.chain.id,
   explorer: "https://basescan.org",
   keeperHubWallet: config.keeperHubWallet,
+  /** Whether settlement happens on its own, and how often. */
+  autoSettle: config.pollIntervalMs > 0,
+  autoSettleMs: config.pollIntervalMs,
 }));
 
 app.get("/balances", async () =>
@@ -109,28 +112,60 @@ app.get<{ Querystring: { dryRun?: string } }>("/resolve", async (req) => {
 
 // ---- Background sweep ---------------------------------------------------
 
+/**
+ * Automatic settlement.
+ *
+ * Reads the whole board in one multicall, then submits settlement only for the
+ * jobs that actually need it. The previous version called resolveJob for every
+ * job on every tick, which meant a stream of redundant chain reads just to
+ * re-learn that settled jobs are still settled.
+ */
 function startPollLoop() {
-  if (config.pollIntervalMs <= 0) return;
+  if (config.pollIntervalMs <= 0) {
+    console.log("resolver: automatic settlement DISABLED (RESOLVER_POLL_MS=0)");
+    return;
+  }
+
+  let running = false;
+
   const tick = async () => {
+    // A slow sweep must not overlap itself and double-submit settlements.
+    if (running) return;
+    running = true;
     try {
-      const count = await readJobCount();
-      for (let id = 1n; id <= count; id++) {
-        const r = await resolveJob(id);
-        if (r.decision.action !== "wait") {
-          log({
-            level: r.decision.action === "release" ? "success" : "warn",
-            jobId: r.jobId,
-            phase: "sweep",
-            message: `auto-resolved: ${r.decision.action.toUpperCase()} — ${r.decision.reason}`,
-            executionId: r.settlement?.executionId,
-          });
+      const jobs = await listJobs();
+      const due = jobs.filter((j) => j.pendingDecision.action !== "wait");
+
+      for (const j of due) {
+        const r = await resolveJob(BigInt(j.jobId));
+        if (r.decision.action === "wait") continue; // raced with a manual settle
+
+        log({
+          level: r.decision.action === "release" ? "success" : "warn",
+          jobId: r.jobId,
+          phase: "auto",
+          message:
+            `settled automatically: ${r.decision.action.toUpperCase()} — ` +
+            r.decision.reason,
+          executionId: r.settlement?.executionId,
+        });
+
+        if (r.error) {
+          log({ level: "error", jobId: r.jobId, phase: "auto", message: r.error });
         }
       }
     } catch (err) {
-      app.log.error(err, "poll loop error");
+      app.log.error(err, "resolver sweep failed");
+    } finally {
+      running = false;
     }
   };
+
   setInterval(tick, config.pollIntervalMs);
+  void tick(); // don't wait a full interval to catch what's already due
+  console.log(
+    `resolver: automatic settlement every ${config.pollIntervalMs}ms`,
+  );
 }
 
 app

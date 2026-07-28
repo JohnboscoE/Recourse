@@ -107,6 +107,32 @@ export function NavBar({ cfg, balances, view, onNavigate, connected }: Props) {
             </span>
           </div>
 
+          {/*
+            Whether settlement is automatic is the single most important thing
+            to know about a running instance — if it's off, expired jobs sit
+            unrefunded and nothing on screen would otherwise say so.
+          */}
+          {cfg && (
+            <div
+              className="hidden items-center gap-1.5 px-3 md:flex"
+              title={
+                cfg.autoSettle
+                  ? `Resolver sweeps every ${Math.round(cfg.autoSettleMs / 1000)}s`
+                  : "Automatic settlement is off — jobs only settle when you click Settle"
+              }
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  cfg.autoSettle ? "bg-success" : "bg-warning",
+                )}
+              />
+              <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                {cfg.autoSettle ? "auto-settle" : "manual"}
+              </span>
+            </div>
+          )}
+
           {balances && (
             <div className="hidden items-center divide-x divide-white/8 lg:flex">
               <Stat label="escrow" value={`${balances.escrowUsdc} USDC`} />

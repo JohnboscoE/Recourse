@@ -34,6 +34,9 @@ export interface AppConfig {
   chainId: number;
   explorer: string;
   keeperHubWallet: string;
+  /** Whether the backend settles jobs on its own, and how often. */
+  autoSettle: boolean;
+  autoSettleMs: number;
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {

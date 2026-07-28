@@ -26,7 +26,15 @@ export const config = {
   keeperHubWallet: (process.env.KH_WALLET_ADDRESS ??
     "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA") as `0x${string}`,
   port: Number(process.env.PORT ?? 3001),
-  /** Poll interval for the resolver loop, ms. 0 disables the loop. */
-  pollIntervalMs: Number(process.env.RESOLVER_POLL_MS ?? 0),
+  /**
+   * Poll interval for the resolver loop, ms. Set 0 to disable.
+   *
+   * On by default. The product promise is that settlement is automatic — a job
+   * whose deadline has passed should refund without anyone clicking anything.
+   * Defaulting this off meant the resolver only ever ran when invoked by hand,
+   * which quietly turned "automatic escrow" into "escrow you must remember to
+   * settle".
+   */
+  pollIntervalMs: Number(process.env.RESOLVER_POLL_MS ?? 30_000),
   required,
 };
