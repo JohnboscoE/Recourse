@@ -77,7 +77,7 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="animate-fade-in absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={dismissable ? onClose : undefined}
       />
 
@@ -88,7 +88,10 @@ export function Dialog({
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "glass relative w-full rounded-[var(--radius-panel)] outline-none",
+          "glass animate-fade-rise relative w-full rounded-[var(--radius-panel)] outline-none",
+          // Must scroll internally: the onboarding content is taller than a
+          // phone in landscape, and a modal you cannot scroll is a dead end.
+          "max-h-[90dvh] overflow-y-auto overscroll-contain",
           size === "lg" ? "max-w-2xl" : "max-w-lg",
         )}
       >

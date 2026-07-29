@@ -179,7 +179,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
         </div>
 
         {/* Actions. Neutral by default; only the primary one carries weight. */}
-        <div className="mt-7 flex flex-wrap items-center gap-1">
+        <div className="mt-7 flex flex-wrap items-center gap-x-1 gap-y-2">
           <Button
             size="sm"
             variant="ghost"

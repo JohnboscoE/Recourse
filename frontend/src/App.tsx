@@ -27,8 +27,12 @@ export default function App() {
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(Math.floor(Date.now() / 1000));
-  const [view, setView] = useState<View>("board");
+  // A first-time visitor lands on the overview; returning visitors go straight
+  // to the board. `null` until localStorage has been read, so we never flash
+  // the wrong view.
+  const [view, setView] = useState<View | null>(null);
   const [composing, setComposing] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const onboarding = useOnboarding();
   const seqRef = useRef(0);
 
@@ -47,6 +51,12 @@ export default function App() {
     api.config().then(setCfg).catch(() => {});
     void refreshJobs();
   }, [refreshJobs]);
+
+  // Landing first for anyone who hasn't been through the intro.
+  useEffect(() => {
+    if (!onboarding.hydrated || view !== null) return;
+    setView(onboarding.isNewVisitor ? "landing" : "board");
+  }, [onboarding.hydrated, onboarding.isNewVisitor, view]);
 
   // Tail the event log. New events almost always mean chain state moved, so
   // refresh the board too rather than polling it on its own timer.
@@ -83,19 +93,51 @@ export default function App() {
     <NavBar
       cfg={cfg}
       balances={balances}
-      view={view}
+      view={view ?? "board"}
       onNavigate={setView}
       connected={!err}
-      onReplayOnboarding={onboarding.replay}
+      onReplayOnboarding={() => {
+        // Replay means "show me the intro again", so go back to where the
+        // intro lives rather than just clearing the flag on the board.
+        onboarding.replay();
+        setView("landing");
+        setShowIntro(true);
+      }}
     />
   );
+
+  // Nothing until we know which view to show — avoids a flash of the board
+  // before the landing page for a first-time visitor.
+  if (view === null) {
+    return <div className="h-full" />;
+  }
 
   if (view === "landing") {
     return (
       <div className="h-full overflow-y-auto">
         <AmbientBackground intensity="full" />
         {chrome}
-        <Hero onEnter={() => setView("board")} />
+        <Hero
+          onEnter={() => {
+            // New visitor: intro first, then the board (the dialog's own CTA
+            // carries them through). Returning visitor: straight in.
+            if (onboarding.isNewVisitor) setShowIntro(true);
+            else setView("board");
+          }}
+        />
+        <WelcomeDialog
+          open={showIntro}
+          onClose={() => {
+            setShowIntro(false);
+            onboarding.completeWelcome();
+            setView("board");
+          }}
+          onStartTour={() => {
+            setShowIntro(false);
+            onboarding.completeWelcome();
+            setView("board");
+          }}
+        />
       </div>
     );
   }
@@ -104,15 +146,6 @@ export default function App() {
     <div className="h-full overflow-y-auto">
       <AmbientBackground intensity="subtle" />
       {chrome}
-
-      <WelcomeDialog
-        open={onboarding.showWelcome}
-        onClose={onboarding.completeWelcome}
-        onStartTour={() => {
-          onboarding.completeWelcome();
-          setView("board");
-        }}
-      />
 
       {err && (
         <div className="border-danger/30 bg-danger-muted text-danger border-b px-6 py-2 font-mono text-xs">

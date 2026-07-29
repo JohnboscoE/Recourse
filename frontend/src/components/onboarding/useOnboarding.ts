@@ -51,6 +51,8 @@ export function useOnboarding() {
 
   return {
     hydrated,
+    /** A visitor who has never completed the intro. */
+    isNewVisitor: hydrated && !state.welcomed,
     showWelcome: hydrated && !state.welcomed,
     showChecklist: hydrated && !state.checklistDismissed,
     completeWelcome: () => update({ welcomed: true }),

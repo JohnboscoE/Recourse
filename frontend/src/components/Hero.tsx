@@ -43,7 +43,7 @@ export function Hero({ onEnter }: { onEnter: () => void }) {
         </p>
 
         {/* Primary CTA, with light travelling around the rim. */}
-        <GlowBorder radius="0.5rem" duration={4} className="mt-10">
+        <GlowBorder radius="0.5rem" duration={4} className="mt-10 max-w-full">
           <LiquidButton onClick={onEnter} className="text-foreground">
             Open the dashboard
             <ArrowRight className="size-4" />

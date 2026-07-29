@@ -23,7 +23,7 @@ function Wordmark() {
       </span>
       <div className="leading-none">
         <div className="text-[15px] font-semibold tracking-tight">Recourse</div>
-        <div className="text-muted-foreground mt-0.5 text-[10px] tracking-wide">
+        <div className="text-muted-foreground mt-0.5 hidden text-[10px] tracking-wide sm:block">
           verified settlement
         </div>
       </div>
@@ -78,13 +78,13 @@ export function NavBar({
 
         {/* Segmented nav — the SaaS convention, and it makes the two views
             feel like one product rather than a page with a link on it. */}
-        <nav className="ml-2 hidden rounded-lg border border-white/8 bg-white/[0.03] p-0.5 sm:flex">
+        <nav className="flex shrink-0 rounded-lg border border-white/8 bg-white/[0.03] p-0.5 sm:ml-2">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => onNavigate(t.id)}
               className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                "rounded-md px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-colors sm:px-3 sm:text-xs",
                 view === t.id
                   ? "bg-white/8 text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
