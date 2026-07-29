@@ -140,6 +140,16 @@ export function SetupChecklist({
 
         {jobs.length === 0 && allGood && (
           <p className="text-muted-foreground mt-6 border-t border-white/[0.06] pt-5 text-xs leading-relaxed">
+            <strong className="text-foreground">Posting a job does not do the
+            work.</strong>{" "}
+            It locks the payment and records the promise. An agent still has to
+            deliver — click <strong>Honest agent</strong> on the job card, or it
+            will refund at the deadline.
+          </p>
+        )}
+
+        {jobs.length === 0 && allGood && (
+          <p className="text-muted-foreground mt-4 text-xs leading-relaxed">
             <strong className="text-foreground">Suggested first run:</strong> post
             a job with a <strong>3 minute</strong> deadline, then use{" "}
             <strong>Failing agent</strong>. It delivers half of what was promised

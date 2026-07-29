@@ -124,7 +124,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
         <div className="mt-7 flex items-end justify-between gap-6">
           <div>
             <div className="label-xs flex items-center">
-              Balance delta
+              {settled ? "Balance delta (now)" : "Balance delta"}
               <InfoTip term="Balance delta">{GLOSSARY.delta}</InfoTip>
             </div>
             <div className="mt-2.5 flex items-baseline gap-2">
@@ -150,6 +150,19 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
             </div>
           </div>
         </div>
+
+        {/*
+          A settled job keeps showing a LIVE delta, so funds arriving after the
+          deadline make a correct refund look wrong — "it says 0.05 / 0.05 but
+          it refunded". Settlement used the balance at the deadline; say so.
+        */}
+        {settled && job.deltaMet && job.statusLabel === "Refunded" && (
+          <p className="text-muted-foreground mt-3 text-xs leading-relaxed">
+            This delta is <em>current</em>. At the deadline it was short, so the
+            job refunded — the balance rose afterwards. Settlement reads chain
+            state at the deadline, and a settled job is final.
+          </p>
+        )}
 
         <div className="well mt-5 h-1.5 overflow-hidden rounded-full">
           <div
