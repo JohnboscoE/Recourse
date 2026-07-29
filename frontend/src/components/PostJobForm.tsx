@@ -36,7 +36,10 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
   // The agent-wallet case is advisory, not blocking: its own transfer can't
   // satisfy the job, but an unrelated inflow still can, and deliberately
   // staging a refund is a reasonable thing to do.
-  const canSubmit = looksLikeAddress && !busy;
+  // Below three minutes a job cannot be completed in time, so it would only
+  // ever refund. Matches the server-side floor.
+  const deadlineTooShort = deadlineMins < 3;
+  const canSubmit = looksLikeAddress && !deadlineTooShort && !busy;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -131,17 +134,29 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
               <Input
                 id="deadline"
                 type="number"
-                min={1}
+                min={3}
                 value={deadlineMins}
                 onChange={(e) => setDeadlineMins(Number(e.target.value))}
               />
             </div>
           </div>
 
-          <p className="text-muted-foreground/70 text-xs">
-            Short deadlines make the refund path demoable — try ~3 min to watch a
-            job expire.
-          </p>
+          {deadlineTooShort ? (
+            <p className="text-danger flex gap-1.5 text-xs leading-relaxed">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                Minimum 3 minutes. Creating, working and settling a job takes
+                about two minutes, and payment can only be released before the
+                deadline — anything shorter is guaranteed to refund.
+              </span>
+            </p>
+          ) : (
+            <p className="text-muted-foreground/70 text-xs leading-relaxed">
+              After posting, click <strong>Honest agent</strong> on the job card —
+              posting locks the payment, it doesn&rsquo;t do the work. Use{" "}
+              <strong>Failing agent</strong> to watch the refund path instead.
+            </p>
+          )}
         </div>
 
         {err && (

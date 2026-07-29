@@ -17,6 +17,16 @@ ESCROW_ADDRESS = "0xE21A7446a89b3A8C9A455dC5e1c2A61D21E25982"
 KH_BASE_URL = "https://app.keeperhub.com"
 KH_MCP_PATH = "/mcp"
 KH_WALLET_ADDRESS = "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA"
+# Autonomous agent. UNSET = off, and off is the default on purpose: this
+# spends real USDC with nobody clicking, and the escrow is public so anyone
+# can post a job. Set to "honest" to have it complete jobs, or "fail" to have
+# it under-deliver and drive the refund path on its own.
+#
+# It only takes jobs that pay at least what they cost to deliver, never
+# delivers more than AUTO_AGENT_MAX_USDC, and takes one job per sweep.
+# AUTO_AGENT = "honest"
+# AUTO_AGENT_MAX_USDC = "0.1"
+
 # Browser origins allowed to call this API. Unset reflects any origin, which
 # is fine for a public read-mostly demo but should be pinned once the frontend
 # has a stable domain. Add the Vercel origin here and redeploy.

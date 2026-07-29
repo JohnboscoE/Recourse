@@ -96,6 +96,9 @@ app.get("/config", (c) => {
     // Cron-driven here; the interval is declared in wrangler.toml.
     autoSettle: true,
     autoSettleMs: 60_000,
+    autoAgent: c.env.AUTO_AGENT === "honest" || c.env.AUTO_AGENT === "fail"
+      ? c.env.AUTO_AGENT
+      : null,
   });
 });
 
@@ -127,6 +130,29 @@ app.post("/jobs", async (c) => {
   }
   if (!minIncrease || !payment) {
     return c.json({ error: "minIncrease and payment are required" }, 400);
+  }
+
+  /**
+   * Enforce a floor on the deadline.
+   *
+   * Measured end to end: ~16s for the job to land, ~16s for an agent run, up to
+   * 60s for the cron to notice, ~10s for settlement — and `release` reverts
+   * once the deadline has passed. Under about two minutes a job cannot be
+   * completed even by a perfectly prompt agent, so it is guaranteed to refund.
+   * Refusing to create one beats letting somebody lock funds against a promise
+   * that was never winnable.
+   */
+  const MIN_DEADLINE_MINS = 3;
+  if (deadlineMins < MIN_DEADLINE_MINS) {
+    return c.json(
+      {
+        error:
+          `deadlineMins must be at least ${MIN_DEADLINE_MINS}. Creating, working ` +
+          `and settling a job takes roughly two minutes end to end, and release ` +
+          `reverts after the deadline — a shorter window can only refund.`,
+      },
+      400,
+    );
   }
 
   background(

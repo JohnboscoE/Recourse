@@ -37,6 +37,8 @@ export interface AppConfig {
   /** Whether the backend settles jobs on its own, and how often. */
   autoSettle: boolean;
   autoSettleMs: number;
+  /** "honest" | "fail" when an autonomous agent is running, else null. */
+  autoAgent?: "honest" | "fail" | null;
 }
 
 /**

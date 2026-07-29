@@ -153,6 +153,20 @@ export function NavBar({
             </div>
           )}
 
+          {/* An agent spending on its own is the single most important thing
+              to know about a running instance. */}
+          {cfg?.autoAgent && (
+            <div
+              className="hidden items-center gap-1.5 px-3 md:flex"
+              title={`An autonomous ${cfg.autoAgent} agent is picking up open jobs`}
+            >
+              <span className="bg-warning size-1.5 animate-pulse rounded-full" />
+              <span className="text-warning text-[10px] tracking-wide uppercase">
+                auto-agent
+              </span>
+            </div>
+          )}
+
           {onReplayOnboarding && (
             <button
               onClick={onReplayOnboarding}

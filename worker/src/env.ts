@@ -22,6 +22,10 @@ export interface Env {
   KH_MCP_PATH?: string;
   KH_WALLET_ADDRESS?: string;
   CORS_ORIGINS?: string;
+  /** "honest" | "fail" — enables the autonomous agent. Unset = off. */
+  AUTO_AGENT?: string;
+  /** Largest delivery the auto-agent will make on one job. Default 0.1. */
+  AUTO_AGENT_MAX_USDC?: string;
 
   // --- bindings ---
   DB: D1Database;

@@ -327,8 +327,73 @@ export async function runAgent(
  */
 const MAX_SETTLEMENTS_PER_SWEEP = 5;
 
+/**
+ * Autonomous agent pass.
+ *
+ * Off unless AUTO_AGENT is set, because this spends real USDC without anyone
+ * clicking. The escrow is public: anyone can post a job, so an unguarded agent
+ * is a drain waiting to happen.
+ *
+ * Three guards:
+ *
+ *  - Only take jobs that pay at least what they cost to deliver. A job paying
+ *    0.05 that requires delivering 0.10 loses money, and a rational agent
+ *    declines it. This is the economics the product implies and is worth
+ *    modelling rather than hand-waving.
+ *  - Never deliver more than AUTO_AGENT_MAX_USDC on a single job.
+ *  - One job per sweep, so a burst of postings cannot empty the wallet before
+ *    anyone notices, and the subrequest budget stays intact.
+ *
+ * AUTO_AGENT=fail runs the under-delivering agent instead, which makes the
+ * refund path self-driving for a demo.
+ */
+async function autoAgentPass(env: Env, jobs: JobView[]): Promise<boolean> {
+  const mode = env.AUTO_AGENT;
+  if (mode !== "honest" && mode !== "fail") return false;
+
+  const maxUsdc = Number(env.AUTO_AGENT_MAX_USDC ?? "0.1");
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  const candidate = jobs.find((j) => {
+    if (j.statusLabel !== "Open") return false;
+    // Needs room to deliver, be noticed, and settle before the deadline.
+    if (Number(j.deadline) - nowSec < 90) return false;
+    const required = Number(j.minIncrease);
+    if (required > maxUsdc) return false;
+    // Would delivering cost more than the job pays?
+    return Number(j.paymentAmount) >= required;
+  });
+
+  if (!candidate) return false;
+
+  await logAndTrim(env, {
+    level: "info",
+    jobId: candidate.jobId,
+    phase: "auto",
+    message:
+      `auto-agent picking up job #${candidate.jobId} — pays ` +
+      `${candidate.paymentAmount} to deliver ${candidate.minIncrease} USDC`,
+  });
+
+  await runAgent(env, BigInt(candidate.jobId), mode);
+  return true;
+}
+
 export async function sweep(env: Env): Promise<number> {
   const jobs = await listJobs(env);
+
+  // Work before settling: a job picked up now can still be released this pass
+  // if it happens to also be due, and settlement is the cheaper half.
+  try {
+    await autoAgentPass(env, jobs);
+  } catch (err) {
+    await logAndTrim(env, {
+      level: "error",
+      phase: "auto",
+      message: `auto-agent failed: ${String(err instanceof Error ? err.message : err).slice(0, 200)}`,
+    });
+  }
+
   const due = jobs.filter((j) => j.pendingDecision.action !== "wait");
   if (due.length === 0) return 0;
 
