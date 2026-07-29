@@ -205,12 +205,30 @@ app.post("/jobs/:jobId/resolve", async (c) => {
     id.toString(),
     "resolve",
     resolveJob(c.env, id).then(async (r) => {
+      // Log every outcome, not just "wait". A manual Settle that succeeded
+      // wrote nothing, so a job could change state on chain with no entry
+      // explaining it — the same invisibility the cron path had.
       if (r.decision.action === "wait") {
         await logAndTrim(c.env, {
           level: "info",
           jobId: id.toString(),
           phase: "resolve",
           message: `nothing to settle — ${r.decision.reason}`,
+        });
+      } else if (r.error) {
+        await logAndTrim(c.env, {
+          level: "error",
+          jobId: id.toString(),
+          phase: "resolve",
+          message: `settlement failed: ${String(r.error).slice(0, 200)}`,
+        });
+      } else {
+        await logAndTrim(c.env, {
+          level: r.decision.action === "release" ? "success" : "warn",
+          jobId: id.toString(),
+          phase: "resolve",
+          message: `settled manually: ${r.decision.action.toUpperCase()} — ${r.decision.reason}`,
+          executionId: r.settlement?.executionId,
         });
       }
       return r;

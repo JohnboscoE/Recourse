@@ -302,6 +302,45 @@ export async function runAgent(
     message: `claimed, referencing execution ${work.executionId}`,
     executionId: cl.executionId,
   });
+
+  /**
+   * Settle immediately rather than waiting for the sweep.
+   *
+   * This is a security property, not an optimisation. Between delivering and
+   * releasing, the agent is exposed: it has moved USDC to the subject but has
+   * not been paid, and `release` reverts once the deadline passes. A poster who
+   * picks a deadline just long enough for delivery but too short for the next
+   * cron tick gets refunded AND keeps the delivery, draining the agent — and it
+   * repeats.
+   *
+   * `release` is callable by anyone and re-verifies the delta on-chain, so the
+   * agent closing its own position is safe. This shrinks the exposure window
+   * from up to ~70s down to the round trip.
+   *
+   * Only for honest work: the failing agent has deliberately not met the
+   * predicate, and release would correctly revert.
+   */
+  if (mode === "honest") {
+    try {
+      const rel = await executeEscrowCall(env, "release", id);
+      await logAndTrim(env, {
+        level: "success",
+        jobId: id,
+        phase: "work",
+        message: "released immediately — not waiting for the sweep",
+        executionId: rel.executionId,
+      });
+    } catch (err) {
+      // Non-fatal: the sweep is the backstop. Worth recording, because it means
+      // the agent is carrying delivery risk until then.
+      await logAndTrim(env, {
+        level: "warn",
+        jobId: id,
+        phase: "work",
+        message: `immediate release failed, leaving it to the sweep: ${String(err instanceof Error ? err.message : err).slice(0, 160)}`,
+      });
+    }
+  }
 }
 
 /**
@@ -356,8 +395,16 @@ async function autoAgentPass(env: Env, jobs: JobView[]): Promise<boolean> {
 
   const candidate = jobs.find((j) => {
     if (j.statusLabel !== "Open") return false;
-    // Needs room to deliver, be noticed, and settle before the deadline.
-    if (Number(j.deadline) - nowSec < 90) return false;
+    /**
+     * Require genuine headroom before taking the job.
+     *
+     * Delivery is ~16s and settlement ~10s, but a sweep may be up to 60s away
+     * and KeeperHub can be slow. At 90s the margin was about four seconds,
+     * which is an attack: a poster choosing a deadline in that band gets a free
+     * delivery when settlement misses the window. Three minutes matches the
+     * floor enforced on job creation.
+     */
+    if (Number(j.deadline) - nowSec < 180) return false;
     const required = Number(j.minIncrease);
     if (required > maxUsdc) return false;
     // Would delivering cost more than the job pays?

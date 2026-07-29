@@ -12,6 +12,8 @@ interface Props {
   cfg: AppConfig | null;
   nowSec: number;
   onAction: () => void;
+  /** Live jobs sharing this subject, including this one. */
+  siblings?: number;
 }
 
 function short(addr: string) {
@@ -59,7 +61,7 @@ const DECISION_DOT: Record<string, string> = {
   wait: "bg-muted-foreground/50",
 };
 
-export function JobCard({ job, cfg, nowSec, onAction }: Props) {
+export function JobCard({ job, cfg, nowSec, onAction, siblings = 1 }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const deadline = Number(job.deadline);
@@ -150,6 +152,15 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
             </div>
           </div>
         </div>
+
+        {!settled && siblings > 1 && (
+          <p className="text-info mt-3 text-xs leading-relaxed">
+            {siblings - 1} other live job{siblings > 2 ? "s" : ""} watch
+            {siblings === 2 ? "es" : ""} this same subject. The delta is just the
+            balance minus each job&rsquo;s baseline, so one delivery can satisfy
+            several at once — but only those whose deadline hasn&rsquo;t passed.
+          </p>
+        )}
 
         {/*
           A settled job keeps showing a LIVE delta, so funds arriving after the

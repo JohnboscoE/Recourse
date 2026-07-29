@@ -104,6 +104,20 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  /**
+   * How many other live jobs watch the same subject.
+   *
+   * The delta is just "balance now minus baseline", so one delivery can satisfy
+   * every open job on that subject whose baseline predates it. That is a real
+   * property worth surfacing rather than a surprise to discover.
+   */
+  const openBySubject = new Map<string, number>();
+  for (const j of jobs) {
+    if (j.statusLabel !== "Open" && j.statusLabel !== "Claimed") continue;
+    const k = j.subject.toLowerCase();
+    openBySubject.set(k, (openBySubject.get(k) ?? 0) + 1);
+  }
+
   const chrome = (
     <NavBar
       cfg={cfg}

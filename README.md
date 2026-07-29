@@ -235,6 +235,62 @@ afterwards requires a redeploy, not just a restart. Unset, the built app calls
 Then add the Vercel domain to the backend's `CORS_ORIGINS` and redeploy the
 backend.
 
+## Security model
+
+The escrow is a public contract on Base. Anyone can post a job to it, so
+"anyone could post a job and drain the agent" is the right question to ask.
+
+### The escrow itself
+
+Funds in `RecourseEscrow` can only ever move to one of two places: the **agent**,
+if the balance delta is met before the deadline, or back to the **poster**, once
+the deadline has passed. There is no third path.
+
+`release()` re-reads the subject's balance on-chain and reverts if the delta is
+short. It is callable by anyone precisely because it does not trust the caller —
+correctness comes from the chain read, not from who asked. So a malicious or
+buggy resolver cannot cause an unearned payout, and a poster cannot reclaim
+funds from a job that was genuinely completed in time.
+
+Posting is not free: `createJob` pulls the payment from the poster via
+`transferFrom`, so a job cannot exist without its payment already locked.
+
+### The agent's wallet
+
+This is the surface that actually needs defending, and only when the autonomous
+agent is enabled. **It is off by default.** With it off, an agent only ever runs
+because a human clicked, and nothing can be drained by a stranger posting jobs.
+
+With `AUTO_AGENT` on, the naive attack is to post a job that pays less than it
+costs to fulfil — *deliver 0.1, earn 0.001* — and pocket the difference. The
+agent refuses: it only accepts jobs where **payment ≥ required delivery**. Under
+that rule an attacker's best case is break-even, and any spread they leave for
+the agent is a loss for themselves.
+
+The subtler attack is on timing. Between delivering and being released the agent
+is exposed: it has moved USDC but has not been paid, and `release` reverts once
+the deadline passes. A poster choosing a deadline just long enough to deliver
+but too short to settle would be refunded *and* keep the delivery. Two defences:
+
+- The agent calls `release` itself the moment it has claimed, rather than
+  waiting for the next sweep. This is why that call exists — it shrinks the
+  exposure window from up to ~70 seconds to a single round trip.
+- It declines any job with under three minutes remaining, matching the floor
+  enforced at creation.
+
+Plus a spending cap (`AUTO_AGENT_MAX_USDC`, default 0.1 per job) and one job per
+sweep, so even an unforeseen path is rate-limited rather than instant.
+
+### What is deliberately not defended
+
+- **Griefing.** Anyone can post jobs the agent declines, or waste its attention.
+  This costs the poster gas and locked capital and gains them nothing.
+- **The KeeperHub API key.** It authorises execution from the project's wallet.
+  It lives in a Worker secret and a gitignored `.env`, never in `wrangler.toml`
+  or the client bundle — but anyone holding it can spend. Rotate it if exposed.
+- **The subject address.** A poster naming any address is fine; the predicate is
+  about a balance rising, and the agent only cares whether the job pays.
+
 ## Limitations
 
 Stated plainly, because the narrowness is the design:
