@@ -49,12 +49,35 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
   const net = pay - req;
   const canSubmit = looksLikeAddress && !deadlineTooShort && !busy;
 
+  /**
+   * Why submit is unavailable.
+   *
+   * The subject field deliberately has no default — it used to prefill the
+   * agent's own wallet, which made a self-transfer the easiest job to create.
+   * But an empty field plus a greyed-out button and no explanation just moves
+   * the confusion somewhere else.
+   */
+  const blockedReason = busy
+    ? null
+    : subject.trim().length === 0
+      ? "Enter the subject address — whose USDC balance the agent must increase."
+      : !looksLikeAddress
+        ? "That doesn't look like an address. It should be 0x followed by 40 hex characters."
+        : deadlineTooShort
+          ? "Deadline must be at least 3 minutes."
+          : null;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setBusy(true);
     try {
-      await api.postJob({ subject, minIncrease, payment, deadlineMins });
+      await api.postJob({
+        subject: subject.trim(),
+        minIncrease,
+        payment,
+        deadlineMins,
+      });
       onPosted();
       onClose();
     } catch (e) {
@@ -206,10 +229,15 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
         )}
 
         <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p className="text-muted-foreground/70 text-xs">
-            Two KeeperHub executions — this can take a minute.
+          <p
+            className={cn(
+              "text-xs leading-relaxed",
+              blockedReason ? "text-warning" : "text-muted-foreground/70",
+            )}
+          >
+            {blockedReason ?? "Two KeeperHub executions — this can take a minute."}
           </p>
-          <Button type="submit" disabled={!canSubmit}>
+          <Button type="submit" disabled={!canSubmit} title={blockedReason ?? undefined}>
             {busy && <Loader2 className="size-4 animate-spin" />}
             {busy ? "Submitting…" : "Approve + create"}
           </Button>
