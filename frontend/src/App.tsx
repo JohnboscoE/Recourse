@@ -59,8 +59,16 @@ export default function App() {
     setView(onboarding.isNewVisitor ? "landing" : "board");
   }, [onboarding.hydrated, onboarding.isNewVisitor, view]);
 
-  // Tail the event log. New events almost always mean chain state moved, so
-  // refresh the board too rather than polling it on its own timer.
+  /**
+   * Tail the event log — but only while the tab is actually being looked at.
+   *
+   * At 1.5s a single tab issues ~57k requests a day, and with the board refresh
+   * that is ~76% of Cloudflare's free daily quota from one idle window. Nobody
+   * is reading a hidden tab, so polling it spends quota to render nothing —
+   * and exhausting the quota means the API starts failing mid-demo.
+   *
+   * On becoming visible again it ticks immediately, so nothing feels stale.
+   */
   useEffect(() => {
     let alive = true;
     const tick = async () => {
@@ -76,11 +84,28 @@ export default function App() {
         /* backend not up yet; the next tick retries */
       }
     };
-    const id = setInterval(tick, 1500);
-    void tick();
+    let id: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (id !== null) return;
+      void tick();
+      id = setInterval(tick, 1500);
+    };
+    const stop = () => {
+      if (id === null) return;
+      clearInterval(id);
+      id = null;
+    };
+    const onVisibility = () =>
+      document.visibilityState === "visible" ? start() : stop();
+
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       alive = false;
-      clearInterval(id);
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [refreshJobs]);
 
@@ -94,7 +119,9 @@ export default function App() {
    * created job until something unrelated happened to log.
    */
   useEffect(() => {
-    const id = setInterval(() => void refreshJobs(), 10_000);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") void refreshJobs();
+    }, 10_000);
     return () => clearInterval(id);
   }, [refreshJobs]);
 

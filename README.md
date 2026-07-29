@@ -288,6 +288,32 @@ but too short to settle would be refunded *and* keep the delivery. Two defences:
 Plus a spending cap (`AUTO_AGENT_MAX_USDC`, default 0.1 per job) and one job per
 sweep, so even an unforeseen path is rate-limited rather than instant.
 
+### The known hole: the delta is instantaneous
+
+`release()` reads the subject's balance **at the moment it runs**. So whoever
+controls the subject can withdraw the delivery before release lands, making it
+revert; the deadline then passes and they are refunded while keeping what the
+agent delivered.
+
+This is a property of the predicate, not a bug in the implementation — "balance
+is higher now" is checkable on-chain, "balance went up and stayed up" is not,
+without either escrowing the subject's funds too or snapshotting at claim time
+and accepting a different set of trade-offs.
+
+With the agent driven by a human it does not arise: you choose which jobs to
+work. It only matters with `AUTO_AGENT` enabled against a public escrow, and it
+is why that is bounded rather than trusted:
+
+- Immediate release after claiming, shrinking the window to one round trip.
+- Jobs where poster and subject are the same address are declined outright —
+  that is the attack's natural shape, and not what a real job looks like.
+- `AUTO_AGENT_MAX_USDC` caps a single incident, and one job per sweep caps the
+  rate.
+
+Treat the autonomous agent's wallet as a hot wallet holding only what you are
+willing to lose. That is the honest framing, and it is the reason the feature
+ships off by default.
+
 ### What is deliberately not defended
 
 - **Griefing.** Anyone can post jobs the agent declines, or waste its attention.

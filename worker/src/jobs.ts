@@ -395,6 +395,22 @@ async function autoAgentPass(env: Env, jobs: JobView[]): Promise<boolean> {
 
   const candidate = jobs.find((j) => {
     if (j.statusLabel !== "Open") return false;
+
+    /**
+     * Decline "pay me to send money to myself".
+     *
+     * The delta is instantaneous: release() reads the balance at the moment it
+     * runs. Whoever controls the subject can withdraw the delivery before
+     * release lands, making it revert — then the deadline passes, they are
+     * refunded, and they keep what the agent delivered.
+     *
+     * A poster naming themselves as subject is exactly that shape, and it is
+     * also not what a real job looks like: you pay an agent to increase someone
+     * ELSE's balance — a supplier, a contributor. This is a heuristic, not a
+     * proof (an attacker can use a second address they control), so it is
+     * paired with a low per-job cap rather than relied on alone.
+     */
+    if (j.poster.toLowerCase() === j.subject.toLowerCase()) return false;
     /**
      * Require genuine headroom before taking the job.
      *
