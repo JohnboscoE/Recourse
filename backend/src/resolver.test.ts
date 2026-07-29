@@ -106,3 +106,38 @@ test("boundary: exactly at deadline still allows release", () => {
   });
   assert.equal(d.action, "release");
 });
+
+/**
+ * An Open job whose delta is satisfied still cannot pay out: release() reverts
+ * unless the job is Claimed, because the payment goes to an agent and an
+ * unclaimed job has none. This reads as a bug from the outside, so pin the
+ * behaviour and the wording that explains it.
+ */
+test("delta met but never claimed: waits, then refunds naming the cause", () => {
+  const met = {
+    status: JobStatus.Open,
+    minIncrease: MIN,
+    deadline: DEADLINE,
+    observedIncrease: MIN,
+  };
+
+  const before = decide({ ...met, nowSec: DEADLINE - 1n });
+  assert.equal(before.action, "wait");
+  assert.match(before.reason, /unclaimed/);
+
+  const after = decide({ ...met, nowSec: DEADLINE + 1n });
+  assert.equal(after.action, "refund");
+  assert.match(after.reason, /no agent ever claimed/);
+});
+
+test("claimed but settled late refunds for a different, stated reason", () => {
+  const late = decide({
+    status: JobStatus.Claimed,
+    minIncrease: MIN,
+    deadline: DEADLINE,
+    observedIncrease: MIN,
+    nowSec: DEADLINE + 1n,
+  });
+  assert.equal(late.action, "refund");
+  assert.match(late.reason, /deadline passed before release/);
+});

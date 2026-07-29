@@ -48,16 +48,26 @@ export function decide(input: DecisionInput): Decision {
   // Past the deadline with no successful release: poster can reclaim. Covers
   // both never-claimed jobs and claimed-but-unfulfilled (or fulfilled too late).
   if (!withinDeadline) {
-    return {
-      action: "refund",
-      reason: deltaMet
-        ? "delta met but deadline passed before release"
-        : `delta not met by deadline (${observedIncrease} < ${minIncrease})`,
-    };
+    // Name the actual cause. "Delta met but deadline passed" is true for both a
+    // claimed job that settled too late and a job nobody ever claimed, and
+    // those are very different situations for whoever is reading the log.
+    let reason: string;
+    if (!deltaMet) {
+      reason = `delta not met by deadline (${observedIncrease} < ${minIncrease})`;
+    } else if (status === JobStatus.Open) {
+      reason =
+        "delta met, but no agent ever claimed the job — payment can only be " +
+        "released to an agent that claimed it";
+    } else {
+      reason = "delta met but deadline passed before release";
+    }
+    return { action: "refund", reason };
   }
 
   return {
     action: "wait",
-    reason: deltaMet ? "delta met, awaiting claim" : "delta not yet met, within deadline",
+    reason: deltaMet
+      ? "delta met, but unclaimed — an agent must claim before it can be released"
+      : "delta not yet met, within deadline",
   };
 }

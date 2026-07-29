@@ -87,6 +87,13 @@ Mostly a manual override. Settlement is automatic — the resolver sweeps on a
 timer (30s on the Node backend, 60s on the Worker) and settles anything due. Use
 this when you don't want to wait for the next sweep.
 
+> **A job must be claimed before it can pay.** `release` reverts unless the job
+> is `Claimed`, because the payment goes to *an agent* — an unclaimed job has
+> nobody to pay, so it waits and then refunds no matter how well the delta is
+> met. Meeting the requirement is necessary, not sufficient: an agent has to
+> claim the job too. This is why posting a job and watching the balance rise on
+> its own never results in a payout.
+
 > **Timing.** `release` reverts if `block.timestamp > deadline`, so the
 > settlement transaction itself has to land inside the window — meeting the
 > delta is necessary but not sufficient. Measured end to end: ~16s to create a

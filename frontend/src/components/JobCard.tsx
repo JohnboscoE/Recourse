@@ -196,6 +196,25 @@ export function JobCard({ job, cfg, nowSec, onAction, siblings = 1 }: Props) {
           />
         </div>
 
+        {/*
+          The case that reads as a bug but is the contract working as designed:
+          release() reverts unless status == Claimed, so a job nobody claimed can
+          never pay out however well the delta is met — it waits, then refunds.
+          Payment goes to an agent, and with no agent there is nobody to pay.
+          Left as a quiet "Waiting" line this looks like the app ignoring a
+          satisfied requirement.
+        */}
+        {isOpen && job.deltaMet && (
+          <div className="border-warning/30 bg-warning-muted mt-5 rounded-lg border px-3.5 py-3">
+            <p className="text-warning text-xs leading-relaxed">
+              <strong>Requirement met — but no agent has claimed this job.</strong>{" "}
+              Payment can only be released to an agent that claimed it, so this
+              will refund at the deadline unless an agent runs. Click{" "}
+              <strong>Honest agent</strong> below to claim and settle it.
+            </p>
+          </div>
+        )}
+
         {/* Resolver's current verdict — a dot and a sentence, not a panel. */}
         <div className="mt-7 flex items-center gap-2.5 text-xs">
           <span
@@ -211,7 +230,7 @@ export function JobCard({ job, cfg, nowSec, onAction, siblings = 1 }: Props) {
                 ? "Would release"
                 : "Would refund"}
           </span>
-          <span className="text-muted-foreground truncate">
+          <span className="text-muted-foreground">
             {job.pendingDecision.reason}
           </span>
         </div>
