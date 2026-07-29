@@ -7,6 +7,7 @@ import { EventLog } from "./components/EventLog.js";
 import { Hero } from "./components/Hero.js";
 import { NavBar } from "./components/NavBar.js";
 import { MetricsRow } from "./components/MetricsRow.js";
+import { RecentActivity } from "./components/RecentActivity.js";
 import { AmbientBackground } from "./components/ui/ambient-background.js";
 import { WelcomeDialog } from "./components/onboarding/WelcomeDialog.js";
 import { SetupChecklist } from "./components/onboarding/SetupChecklist.js";
@@ -200,6 +201,10 @@ export default function App() {
           </div>
         )}
 
+        {/* Below xl the log collapses to the bottom of the page, past every
+            job card. This keeps the latest activity reachable on a phone. */}
+        <RecentActivity events={events} cfg={cfg} className="mt-10 xl:hidden" />
+
         {/* Asymmetric split: jobs carry more weight than the log. */}
         <div className="mt-10 grid items-start gap-6 sm:mt-14 sm:gap-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
           <section>
@@ -245,7 +250,7 @@ export default function App() {
           </section>
 
           {/* Log follows the page but stays in view while scrolling jobs. */}
-          <section className="xl:sticky xl:top-24">
+          <section className="hidden xl:sticky xl:top-24 xl:block">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold">Execution log</h2>
               <span className="text-muted-foreground tnum text-xs">

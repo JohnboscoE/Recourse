@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { readConfig, type Env } from "./env.js";
 import { listJobs, getJobView, getBalances, resolveJob, postJob, runAgent, sweep } from "./jobs.js";
 import { getExecution } from "./keeperhub.js";
-import { since, latestSeq } from "./eventlog.js";
+import { since, latestSeq, logAndTrim } from "./eventlog.js";
 import { readJob } from "./chain.js";
 
 /**
@@ -24,6 +24,39 @@ import { readJob } from "./chain.js";
  */
 
 const app = new Hono<{ Bindings: Env }>();
+
+/**
+ * Launch background work so that failures are visible.
+ *
+ * `waitUntil` swallows rejections: a throw inside the task disappears with no
+ * log line, no error, and nothing on screen — the request already returned 200.
+ * That produced jobs that sat Open with `agent = 0x0` and an empty log, looking
+ * for all the world like the button did nothing.
+ *
+ * The Node backend has always caught and logged here. The port lost it; this
+ * restores parity.
+ */
+function background(
+  ctx: { waitUntil(p: Promise<unknown>): void },
+  env: Env,
+  jobId: string | undefined,
+  phase: string,
+  work: Promise<unknown>,
+) {
+  ctx.waitUntil(
+    work.catch((err) =>
+      logAndTrim(env, {
+        level: "error",
+        jobId,
+        phase,
+        message: String(err instanceof Error ? err.message : err).slice(0, 500),
+      }).catch(() => {
+        // If even the log write fails there is nowhere left to report it.
+        console.error(`${phase} failed`, err);
+      }),
+    ),
+  );
+}
 
 // BigInt is not JSON-serialisable; render as strings like the Node backend.
 (BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
@@ -96,7 +129,11 @@ app.post("/jobs", async (c) => {
     return c.json({ error: "minIncrease and payment are required" }, 400);
   }
 
-  c.executionCtx.waitUntil(
+  background(
+    c.executionCtx,
+    c.env,
+    undefined,
+    "post",
     postJob(c.env, { subject, minIncrease, payment, deadlineMins }),
   );
   return c.json({ started: true, sinceSeq: await latestSeq(c.env) });
@@ -109,7 +146,7 @@ app.post("/jobs/:jobId/work", async (c) => {
     .catch(() => ({}) as { mode?: "honest" | "fail" });
   const mode = body.mode === "fail" ? "fail" : "honest";
 
-  c.executionCtx.waitUntil(runAgent(c.env, id, mode));
+  background(c.executionCtx, c.env, id.toString(), "work", runAgent(c.env, id, mode));
   return c.json({ started: true, sinceSeq: await latestSeq(c.env) });
 });
 
@@ -120,7 +157,7 @@ app.post("/jobs/:jobId/resolve", async (c) => {
   // settlement is a chain write; hand it off and let the log report.
   if (dryRun) return c.json(await resolveJob(c.env, id, { dryRun: true }));
 
-  c.executionCtx.waitUntil(resolveJob(c.env, id));
+  background(c.executionCtx, c.env, id.toString(), "resolve", resolveJob(c.env, id));
   return c.json({ started: true, sinceSeq: await latestSeq(c.env) });
 });
 

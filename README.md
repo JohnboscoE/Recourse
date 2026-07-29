@@ -48,6 +48,52 @@ Step 3 never asks whether the transaction succeeded. It reads the ledger.
 > plain-language explanation of the problem, the design, and why the predicate
 > is deliberately narrow.
 
+## The four controls on a job
+
+Each job card exposes the whole lifecycle, so the honest and dishonest paths can
+be driven side by side against the same escrow.
+
+### Honest agent — *spends real USDC*
+
+Runs a worker that delivers exactly what was promised. Two KeeperHub executions:
+a USDC transfer of `minIncrease` to the subject, then `claim()` recording the
+execution id on-chain. The delta is met, and the resolver releases payment to
+the agent. This is the happy path.
+
+### Failing agent — *spends real USDC*
+
+The same flow, except it delivers **half** of what was promised — then claims
+anyway, as if it had finished.
+
+This is the case the project exists for. The transfer **genuinely succeeds**:
+KeeperHub reports `completed` / `success: true`, with a real transaction hash
+and gas burned. Any rail keyed on transaction status pays the agent here. The
+resolver reads chain state instead, finds the balance moved half as far as
+promised, and refunds the poster.
+
+### Dry run — *free, submits nothing*
+
+Runs the resolver's decision logic and reports what it *would* do —
+`RELEASE`, `REFUND` or `WAIT` — with the reasoning, without touching the chain.
+It reads the balance delta and pulls the agent's KeeperHub execution record for
+context. Use it to see the verdict before committing to it.
+
+### Settle — *submits a transaction*
+
+Executes the pending decision: `release` to the agent, or `refund` to the
+poster, via KeeperHub.
+
+Mostly a manual override. Settlement is automatic — the resolver sweeps on a
+timer (30s on the Node backend, 60s on the Worker) and settles anything due. Use
+this when you don't want to wait for the next sweep.
+
+> **Timing.** `release` reverts if `block.timestamp > deadline`, so the
+> settlement transaction itself has to land inside the window — meeting the
+> delta is necessary but not sufficient. Measured end to end: ~16s to create a
+> job, ~16s for an agent run, up to 60s for the Worker's cron to notice, ~10s
+> for settlement. Give jobs on the deployed app **at least 3 minutes**, and 5+
+> if you're demoing. Short deadlines are useful for showing the refund path.
+
 ## Proof it works
 
 Five jobs settled on Base, both outcomes exercised.

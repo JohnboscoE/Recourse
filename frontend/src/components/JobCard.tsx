@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ArrowUpRight, Clock } from "lucide-react";
 import { api, type JobView, type AppConfig } from "../api.js";
 import { cn } from "@/lib/utils";
@@ -59,6 +60,8 @@ const DECISION_DOT: Record<string, string> = {
 };
 
 export function JobCard({ job, cfg, nowSec, onAction }: Props) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const deadline = Number(job.deadline);
   const settled = job.statusLabel === "Released" || job.statusLabel === "Refunded";
   const isOpen = job.statusLabel === "Open";
@@ -68,10 +71,21 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
   const required = Number(job.minIncrease);
   const pct = Math.min(100, (observed / Math.max(required, 1e-9)) * 100);
 
+  /**
+   * try/finally with no catch meant a failed request surfaced as an unhandled
+   * rejection: the button looked like it did nothing at all. Errors now show on
+   * the card, and the control is disabled while in flight so a slow request
+   * cannot be fired twice.
+   */
   async function run(fn: () => Promise<unknown>) {
+    setBusy(true);
+    setErr(null);
     try {
       await fn();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      setBusy(false);
       onAction();
     }
   }
@@ -183,7 +197,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
           <Button
             size="sm"
             variant="ghost"
-            disabled={!isOpen}
+            disabled={!isOpen || busy}
             onClick={() => run(() => api.work(job.jobId, "honest"))}
           >
             Honest agent
@@ -191,7 +205,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
           <Button
             size="sm"
             variant="ghost"
-            disabled={!isOpen}
+            disabled={!isOpen || busy}
             onClick={() => run(() => api.work(job.jobId, "fail"))}
             title="Delivers half the required amount — the transfer still succeeds on-chain"
           >
@@ -200,6 +214,7 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
           <Button
             size="sm"
             variant="ghost"
+            disabled={busy}
             onClick={() => run(() => api.resolve(job.jobId, true))}
           >
             Dry run
@@ -219,10 +234,14 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
             </a>
           )}
 
-          <Button size="sm" disabled={!canSettle} onClick={() => run(() => api.resolve(job.jobId, false))}>
+          <Button size="sm" disabled={!canSettle || busy} onClick={() => run(() => api.resolve(job.jobId, false))}>
             Settle
           </Button>
         </div>
+
+        {err && (
+          <p className="text-danger mt-4 font-mono text-xs break-words">{err}</p>
+        )}
       </div>
     </Card>
   );

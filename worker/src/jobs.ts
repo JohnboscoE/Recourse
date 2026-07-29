@@ -256,13 +256,34 @@ export async function runAgent(
     amount: human(sendBase),
     idempotencyKey: `recourse:pay:${jobId}:${sendBase}`,
   });
+
+  /**
+   * Do not claim work that did not happen.
+   *
+   * The transfer can come back failed — bad recipient, insufficient balance, a
+   * rejected execution. Claiming anyway marks the job Claimed, burns a
+   * transaction, and points the audit trail at an execution that delivered
+   * nothing. The resolver would still refuse to release, so no money is lost,
+   * but the job would misrepresent what the agent actually did.
+   */
+  const transferFailed = ["error", "failed", "cancelled"].includes(work.status);
   await logAndTrim(env, {
-    level: "info",
+    level: transferFailed ? "error" : "info",
     jobId: id,
     phase: "work",
     message: `transfer ${work.status} (via ${work.via})`,
     executionId: work.executionId,
   });
+
+  if (transferFailed) {
+    await logAndTrim(env, {
+      level: "error",
+      jobId: id,
+      phase: "work",
+      message: "not claiming — the delivery did not succeed, so there is no work to claim",
+    });
+    return;
+  }
 
   const cl = await contractCall(
     env,
