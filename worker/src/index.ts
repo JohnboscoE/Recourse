@@ -38,6 +38,19 @@ app.use("*", async (c, next) => {
   })(c, next);
 });
 
+/**
+ * Errors as JSON, matching the Node backend.
+ *
+ * Hono's default is a bare "Internal Server Error" body, which tells a caller
+ * — and an operator reading logs — nothing at all. Chain reads and KeeperHub
+ * calls are the things that fail here, and their messages are the diagnosis.
+ */
+app.onError((err, c) => {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error("request failed", message);
+  return c.json({ error: message.slice(0, 600) }, 500);
+});
+
 app.get("/health", (c) => c.json({ ok: true, service: "recourse-worker" }));
 
 app.get("/config", (c) => {

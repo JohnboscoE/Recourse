@@ -17,17 +17,22 @@ ESCROW_ADDRESS = "0xE21A7446a89b3A8C9A455dC5e1c2A61D21E25982"
 KH_BASE_URL = "https://app.keeperhub.com"
 KH_MCP_PATH = "/mcp"
 KH_WALLET_ADDRESS = "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA"
-# Set to the deployed frontend origin before going live.
-# CORS_ORIGINS = "https://recourse.vercel.app"
+# Browser origins allowed to call this API. Unset reflects any origin, which
+# is fine for a public read-mostly demo but should be pinned once the frontend
+# has a stable domain. Add the Vercel origin here and redeploy.
+# CORS_ORIGINS = "https://recourse.vercel.app,http://localhost:5173"
 
-# A dedicated RPC matters more here than locally — the public Base endpoint
-# throttles hard and the Worker has no read cache in front of it.
-# BASE_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/YOUR_KEY"
+# NOTE: BASE_RPC_URL is a SECRET, not a var — the URL embeds an API key and
+# this file is committed. Set it with:
+#   wrangler secret put BASE_RPC_URL
+# It is not optional: without it the Worker falls back to the public Base
+# endpoint and /jobs returns 500 "over rate limit" almost immediately, because
+# unlike the Node backend there is no read cache in front of the RPC.
 
 [[d1_databases]]
 binding = "DB"
 database_name = "recourse"
-database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+database_id = "547585f3-3c7f-481b-b322-9e5c936817e7"
 
 # Secret, never in this file:
 #   wrangler secret put KH_API_KEY
