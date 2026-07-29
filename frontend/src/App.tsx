@@ -84,6 +84,20 @@ export default function App() {
     };
   }, [refreshJobs]);
 
+  /**
+   * Refresh the board on its own timer, not only when an event arrives.
+   *
+   * Chain state moves without always producing a log line: a createJob lands a
+   * few seconds after its "submitted" event, and a job crosses its deadline
+   * with no event at all. Refreshing only on events meant the board could sit
+   * stale — showing a job as Open past its deadline, or not showing a newly
+   * created job until something unrelated happened to log.
+   */
+  useEffect(() => {
+    const id = setInterval(() => void refreshJobs(), 10_000);
+    return () => clearInterval(id);
+  }, [refreshJobs]);
+
   // Ticking clock for deadline countdowns.
   useEffect(() => {
     const id = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);

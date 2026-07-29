@@ -153,11 +153,43 @@ app.post("/jobs/:jobId/work", async (c) => {
 app.post("/jobs/:jobId/resolve", async (c) => {
   const id = BigInt(c.req.param("jobId"));
   const dryRun = ["1", "true"].includes(c.req.query("dryRun") ?? "");
-  // Dry run is cheap and its answer is the point, so await it. A real
-  // settlement is a chain write; hand it off and let the log report.
-  if (dryRun) return c.json(await resolveJob(c.env, id, { dryRun: true }));
 
-  background(c.executionCtx, c.env, id.toString(), "resolve", resolveJob(c.env, id));
+  /**
+   * Always log the decision, including "wait" and dry runs.
+   *
+   * Previously a dry run returned inline and a "wait" settlement returned
+   * early, both without writing anything. Clicking Dry run or Settle on a job
+   * that is not yet due therefore produced no visible output at all — which is
+   * indistinguishable from the button being broken.
+   */
+  if (dryRun) {
+    const report = await resolveJob(c.env, id, { dryRun: true });
+    await logAndTrim(c.env, {
+      level: "info",
+      jobId: id.toString(),
+      phase: "dry-run",
+      message: `would ${report.decision.action.toUpperCase()} — ${report.decision.reason}`,
+    });
+    return c.json(report);
+  }
+
+  background(
+    c.executionCtx,
+    c.env,
+    id.toString(),
+    "resolve",
+    resolveJob(c.env, id).then(async (r) => {
+      if (r.decision.action === "wait") {
+        await logAndTrim(c.env, {
+          level: "info",
+          jobId: id.toString(),
+          phase: "resolve",
+          message: `nothing to settle — ${r.decision.reason}`,
+        });
+      }
+      return r;
+    }),
+  );
   return c.json({ started: true, sinceSeq: await latestSeq(c.env) });
 });
 

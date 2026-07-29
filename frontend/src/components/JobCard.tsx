@@ -192,6 +192,19 @@ export function JobCard({ job, cfg, nowSec, onAction }: Props) {
           </span>
         </div>
 
+        {/*
+          A disabled control with no explanation is why "the button did nothing"
+          is such a common report — the job had already been claimed or settled,
+          and nothing on screen said so.
+        */}
+        {!isOpen && (
+          <p className="text-muted-foreground mt-6 text-xs">
+            {settled
+              ? `This job is ${job.statusLabel.toLowerCase()} — agents can only run on Open jobs.`
+              : "Already claimed by an agent — waiting on settlement."}
+          </p>
+        )}
+
         {/* Actions. Neutral by default; only the primary one carries weight. */}
         <div className="mt-7 flex flex-wrap items-center gap-x-1 gap-y-2">
           <Button
