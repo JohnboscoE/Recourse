@@ -10,6 +10,8 @@ import { InfoTip, GLOSSARY } from "@/components/ui/info-tip";
 interface Props {
   /** The wallet the agent pays FROM — never a valid subject. */
   agentWallet: string;
+  /** Prefilled subject, so a first-time visitor can post without hunting. */
+  defaultSubject?: string | null;
   onPosted: () => void;
   onClose: () => void;
 }
@@ -18,11 +20,22 @@ interface Props {
  * Posts a job. A job is a statement of exactly one shape:
  * "address X's USDC balance increases by >= N by time T."
  */
-export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
-  // Deliberately empty. It previously defaulted to the execution wallet, which
-  // is the address the agent pays FROM — so the transfer was a self-transfer,
-  // the delta stayed at 0, and every such job could only refund.
-  const [subject, setSubject] = useState("");
+export function PostJobForm({
+  agentWallet,
+  defaultSubject,
+  onPosted,
+  onClose,
+}: Props) {
+  /**
+   * Prefilled from the deployment's DEFAULT_SUBJECT so a reviewer can post
+   * immediately, and freely editable.
+   *
+   * This is NOT a return to the old default, which was the execution wallet —
+   * the address the agent pays FROM. That made every job a self-transfer whose
+   * delta stayed at 0. The server refuses to serve that address here, and the
+   * warning below still fires if anyone types it in.
+   */
+  const [subject, setSubject] = useState(defaultSubject ?? "");
   const [minIncrease, setMinIncrease] = useState("0.1");
   const [payment, setPayment] = useState("0.05");
   const [deadlineMins, setDeadlineMins] = useState(30);

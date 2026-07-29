@@ -27,6 +27,11 @@ KH_WALLET_ADDRESS = "0x2dA51eA57157bc9CFB5799f1dBAAda9B7e432edA"
 AUTO_AGENT = "honest"
 AUTO_AGENT_MAX_USDC = "0.05"
 
+# Prefills the subject field so a reviewer can post a job without hunting for
+# an address. Editable in the UI. Must NOT be the execution wallet — the agent
+# pays from that address, so a job naming it nets to zero and can only refund.
+DEFAULT_SUBJECT = "0x676596E33FA6FF7D9c539549e8Ee50406856b27f"
+
 # Browser origins allowed to call this API. Unset reflects any origin, which
 # is fine for a public read-mostly demo but should be pinned once the frontend
 # has a stable domain. Add the Vercel origin here and redeploy.

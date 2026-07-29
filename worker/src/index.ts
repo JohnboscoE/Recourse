@@ -99,6 +99,13 @@ app.get("/config", (c) => {
     autoAgent: c.env.AUTO_AGENT === "honest" || c.env.AUTO_AGENT === "fail"
       ? c.env.AUTO_AGENT
       : null,
+    // Prefill for the post form. Never the execution wallet: the agent pays
+    // from that address, so a job naming it can only ever refund.
+    defaultSubject:
+      c.env.DEFAULT_SUBJECT &&
+      c.env.DEFAULT_SUBJECT.toLowerCase() !== cfg.keeperHubWallet.toLowerCase()
+        ? c.env.DEFAULT_SUBJECT
+        : null,
   });
 });
 

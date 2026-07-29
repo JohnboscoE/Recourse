@@ -26,6 +26,11 @@ export interface Env {
   AUTO_AGENT?: string;
   /** Largest delivery the auto-agent will make on one job. Default 0.1. */
   AUTO_AGENT_MAX_USDC?: string;
+  /**
+   * Prefilled subject on the post form, so a reviewer can post without first
+   * finding an address. Public information — it appears in every job on chain.
+   */
+  DEFAULT_SUBJECT?: string;
 
   // --- bindings ---
   DB: D1Database;

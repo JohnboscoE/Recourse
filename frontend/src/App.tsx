@@ -250,6 +250,7 @@ export default function App() {
           <div className="mt-8">
             <PostJobForm
               agentWallet={cfg?.keeperHubWallet ?? ""}
+              defaultSubject={cfg?.defaultSubject}
               onPosted={() => void refreshJobs()}
               onClose={() => setComposing(false)}
             />

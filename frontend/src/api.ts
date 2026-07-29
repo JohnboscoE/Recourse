@@ -39,6 +39,8 @@ export interface AppConfig {
   autoSettleMs: number;
   /** "honest" | "fail" when an autonomous agent is running, else null. */
   autoAgent?: "honest" | "fail" | null;
+  /** Subject to prefill on the post form, if the deployment sets one. */
+  defaultSubject?: string | null;
 }
 
 /**
