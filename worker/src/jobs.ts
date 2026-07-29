@@ -92,7 +92,7 @@ export async function getBalances(env: Env) {
 export async function resolveJob(
   env: Env,
   jobId: bigint,
-  opts: { dryRun?: boolean } = {},
+  opts: { dryRun?: boolean; skipAudit?: boolean } = {},
 ) {
   const job = await readJob(env, jobId);
   const observedIncrease = await readObservedIncrease(env, jobId);
@@ -107,7 +107,9 @@ export async function resolveJob(
   });
 
   let agentExecution = null;
-  if (job.executionRef) {
+  // The audit record costs three MCP round trips and is never used to decide
+  // anything. The sweep skips it to stay inside the Worker's subrequest budget.
+  if (job.executionRef && !opts.skipAudit) {
     try {
       const rec = await getExecution(env, job.executionRef);
       agentExecution = {
@@ -311,31 +313,73 @@ export async function runAgent(
  * difference, and it only affects how quickly a settlement lands, never
  * whether it does.
  */
+/**
+ * Settle everything that is due, in bounded batches.
+ *
+ * Cloudflare caps a Worker at 50 subrequests per invocation. Each settlement
+ * costs ~5 (two chain reads plus an MCP call), so an unbounded loop over a
+ * growing board blows the budget and the invocation is killed — sometimes
+ * *after* submitting a settlement but *before* logging it, which is how jobs
+ * ended up Refunded on chain with nothing in the log to explain it.
+ *
+ * So: skip the audit lookup, cap the batch, and let the next tick take the
+ * rest. Cron runs every minute, so a backlog drains quickly.
+ */
+const MAX_SETTLEMENTS_PER_SWEEP = 5;
+
 export async function sweep(env: Env): Promise<number> {
   const jobs = await listJobs(env);
   const due = jobs.filter((j) => j.pendingDecision.action !== "wait");
+  if (due.length === 0) return 0;
+
+  const batch = due.slice(0, MAX_SETTLEMENTS_PER_SWEEP);
   let settled = 0;
 
-  for (const j of due) {
-    const r = await resolveJob(env, BigInt(j.jobId));
-    if (r.decision.action === "wait") continue;
-
+  for (const j of batch) {
+    // Record the intent before touching the chain. If this invocation is cut
+    // short mid-settlement, the log still says what was attempted and why.
     await logAndTrim(env, {
-      level: r.decision.action === "release" ? "success" : "warn",
-      jobId: r.jobId,
+      level: "info",
+      jobId: j.jobId,
       phase: "auto",
-      message: `settled automatically: ${r.decision.action.toUpperCase()} — ${r.decision.reason}`,
-      executionId: r.settlement?.executionId,
+      message: `due for ${j.pendingDecision.action.toUpperCase()} — ${j.pendingDecision.reason}`,
     });
-    if (r.error) {
+
+    try {
+      const r = await resolveJob(env, BigInt(j.jobId), { skipAudit: true });
+      if (r.decision.action === "wait") continue;
+
       await logAndTrim(env, {
-        level: "error",
+        level: r.error
+          ? "error"
+          : r.decision.action === "release"
+            ? "success"
+            : "warn",
         jobId: r.jobId,
         phase: "auto",
-        message: String(r.error),
+        message: r.error
+          ? `settlement failed: ${String(r.error).slice(0, 200)}`
+          : `settled automatically: ${r.decision.action.toUpperCase()}`,
+        executionId: r.settlement?.executionId,
+      });
+      if (!r.error) settled++;
+    } catch (err) {
+      await logAndTrim(env, {
+        level: "error",
+        jobId: j.jobId,
+        phase: "auto",
+        message: `settlement threw: ${String(err instanceof Error ? err.message : err).slice(0, 200)}`,
       });
     }
-    settled++;
   }
+
+  if (due.length > batch.length) {
+    await logAndTrim(env, {
+      level: "info",
+      phase: "auto",
+      message: `${due.length - batch.length} more job(s) due — next sweep will take them`,
+    });
+  }
+
   return settled;
 }

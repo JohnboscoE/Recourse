@@ -193,6 +193,19 @@ app.post("/jobs/:jobId/resolve", async (c) => {
   return c.json({ started: true, sinceSeq: await latestSeq(c.env) });
 });
 
+/**
+ * Run a settlement sweep on demand.
+ *
+ * The cron path swallows detail by nature — a scheduled invocation has nowhere
+ * to report to. This runs the same code in the request path so failures come
+ * back as HTTP, which is how the missing auto-settle logs were finally traced.
+ * Also useful as a manual "settle everything now" during a demo.
+ */
+app.post("/sweep", async (c) => {
+  const settled = await sweep(c.env);
+  return c.json({ settled });
+});
+
 app.get("/events", async (c) => {
   const from = Number(c.req.query("since") ?? 0);
   return c.json({
@@ -209,13 +222,30 @@ app.get("/resolve/:jobId", async (c) => {
 export default {
   fetch: app.fetch,
 
-  /** Cron Trigger — the Worker's replacement for the setInterval sweep. */
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(
-      sweep(env).then(
-        (n) => console.log(`sweep settled ${n} job(s)`),
-        (err) => console.error("sweep failed", err),
-      ),
-    );
+  /**
+   * Cron Trigger — the Worker's replacement for the setInterval sweep.
+   *
+   * AWAIT the sweep; do not hand it to waitUntil. The scheduled handler
+   * returning immediately let the runtime tear the invocation down mid-flight:
+   * settlements reached the chain but their completion log never wrote, so jobs
+   * appeared Refunded with nothing explaining why. Awaiting keeps the
+   * invocation alive for the whole sweep — the same code already ran clean via
+   * POST /sweep, which is what isolated this.
+   *
+   * Failures go to the app's own log, not just console. A sweep that dies
+   * silently is indistinguishable from one that had nothing to do, and this is
+   * the path that moves money.
+   */
+  async scheduled(_event: ScheduledController, env: Env) {
+    try {
+      const n = await sweep(env);
+      if (n > 0) console.log(`sweep settled ${n} job(s)`);
+    } catch (err) {
+      await logAndTrim(env, {
+        level: "error",
+        phase: "auto",
+        message: `sweep failed: ${String(err instanceof Error ? err.message : err).slice(0, 300)}`,
+      }).catch(() => console.error("sweep failed, and could not log it", err));
+    }
   },
 };
