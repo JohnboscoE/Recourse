@@ -39,7 +39,11 @@ export function EventLog({ events, cfg }: { events: LogEvent[]; cfg: AppConfig |
           <div key={e.seq} className="leading-relaxed break-words">
             <span className="text-muted-foreground/50">{e.ts.slice(11, 19)} </span>
             <span className={LEVEL_STYLE[e.level]}>{LEVEL_MARK[e.level]} </span>
-            {e.jobId && <span className="text-info">job#{e.jobId} </span>}
+            {e.jobId && (
+              <span className="bg-info-muted text-info mr-1 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                #{e.jobId}
+              </span>
+            )}
             {e.phase && <span className="text-muted-foreground/70">[{e.phase}] </span>}
             <span className={LEVEL_STYLE[e.level]}>{e.message}</span>
             {e.txHash && cfg && (

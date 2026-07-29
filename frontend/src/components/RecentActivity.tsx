@@ -41,7 +41,11 @@ function Line({ e, cfg }: { e: LogEvent; cfg: AppConfig | null }) {
         <span className="text-muted-foreground/60 font-mono text-[10px]">
           {e.ts.slice(11, 19)}
         </span>{" "}
-        {e.jobId && <span className="text-info font-mono">job#{e.jobId}</span>}{" "}
+        {e.jobId && (
+          <span className="bg-info-muted text-info mr-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-medium">
+            #{e.jobId}
+          </span>
+        )}
         <span className={cn("break-words", LEVEL_TEXT[e.level])}>{e.message}</span>
         {e.txHash && cfg && (
           <a

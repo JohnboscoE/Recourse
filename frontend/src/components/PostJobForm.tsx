@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { api } from "../api.js";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
@@ -39,6 +40,13 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
   // Below three minutes a job cannot be completed in time, so it would only
   // ever refund. Matches the server-side floor.
   const deadlineTooShort = deadlineMins < 3;
+
+  // What the job actually means for the agent. "Required" is what it spends;
+  // "Payment" is what it earns. Conflating the two is the most common way to
+  // post a job that behaves nothing like you expected.
+  const req = Number(minIncrease) || 0;
+  const pay = Number(payment) || 0;
+  const net = pay - req;
   const canSubmit = looksLikeAddress && !deadlineTooShort && !busy;
 
   async function submit(e: React.FormEvent) {
@@ -113,7 +121,10 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
             <div>
               <Label htmlFor="min" className="flex items-center">
                 Required
-                <InfoTip term="Required increase">{GLOSSARY.predicate}</InfoTip>
+                <InfoTip term="Required increase">
+                  How much the subject&rsquo;s balance must rise. This is what
+                  the agent has to DELIVER — its cost of doing the job.
+                </InfoTip>
               </Label>
               <Input
                 id="min"
@@ -122,7 +133,14 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
               />
             </div>
             <div>
-              <Label htmlFor="pay">Payment</Label>
+              <Label htmlFor="pay" className="flex items-center">
+                Payment
+                <InfoTip term="Payment">
+                  What the agent EARNS from escrow when it succeeds. Locked out
+                  of your wallet now, and refunded to you if the promise
+                  isn&rsquo;t kept.
+                </InfoTip>
+              </Label>
               <Input
                 id="pay"
                 value={payment}
@@ -140,6 +158,30 @@ export function PostJobForm({ agentWallet, onPosted, onClose }: Props) {
               />
             </div>
           </div>
+
+          {/* Spell the trade out, because the two numbers are easy to swap. */}
+          {req > 0 && pay > 0 && (
+            <div className="well rounded-lg px-3.5 py-3 text-xs leading-relaxed">
+              <p className="text-muted-foreground">
+                The agent delivers{" "}
+                <strong className="text-foreground">{req} USDC</strong> to the
+                subject and earns{" "}
+                <strong className="text-foreground">{pay} USDC</strong> from
+                escrow.
+              </p>
+              <p
+                className={cn(
+                  "mt-1.5 font-medium",
+                  net > 0 ? "text-success" : net < 0 ? "text-danger" : "text-warning",
+                )}
+              >
+                Net for the agent: {net > 0 ? "+" : ""}
+                {net.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} USDC
+                {net < 0 && " — it would lose money, so an autonomous agent declines."}
+                {net === 0 && " — break-even, so an autonomous agent has no reason to take it."}
+              </p>
+            </div>
+          )}
 
           {deadlineTooShort ? (
             <p className="text-danger flex gap-1.5 text-xs leading-relaxed">
