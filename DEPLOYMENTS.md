@@ -64,6 +64,33 @@ result actually arrived. `cli payments` audits the spend — x402's `exact` sche
 signs an EIP-3009 authorisation that a *facilitator* submits, so payments never
 appear in the payer's own transaction history, only as USDC Transfer logs.
 
+## Autonomous agent, verified live (2026-07-29)
+
+`AUTO_AGENT=honest` on the Cloudflare Worker. No human clicked anything in
+either run.
+
+**Job #49 — profitable, taken.** Required +0.02 USDC, paid 0.05, so the agent
+nets +0.03. Whole lifecycle in 42 seconds:
+
+```
+15:42:19  auto   auto-agent picking up job #49 — pays 0.05 to deliver 0.02 USDC
+15:42:19  work   Honest agent delivering 0.02 USDC (requires 0.02)
+15:42:28  work   transfer completed (via mcp)
+15:42:37  work   claimed, referencing execution 84l3d3jjvn0a2x6r82a5p
+15:42:46  work   released immediately — not waiting for the sweep
+```
+
+Final: `Released`, agent `0x2dA5…32edA`, wallet 1.634 → 1.714 (+0.08 = 0.05
+payment received, 0.02 delivered, 0.05 escrow returned).
+
+**Job #50 — lossy, declined.** Required +0.05 USDC, paid 0.02: delivering would
+cost the agent 0.03 more than the job pays. The agent never touched it —
+`agent 0x0`, no work events — and it refunded at its deadline.
+
+That refusal is the security property, not an omission. The naive drain against
+an autonomous agent is to post a job paying less than it costs to fulfil, and
+the economic guard is what makes it unprofitable to try.
+
 ## Demo evidence: both settlement paths verified live
 
 Both terminal outcomes have been exercised against the live escrow on Base, with
